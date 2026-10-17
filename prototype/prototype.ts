@@ -33,7 +33,9 @@ async function main() {
         console.clear();
         console.log(level.renderText());
 
-        const input = await question('Enter command: ');
+        await question('Enter command: ');
+
+        level.next();
     }
 }
 

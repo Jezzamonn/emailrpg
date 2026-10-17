@@ -22,6 +22,6 @@ export class Entity {
     }
 
     getText(): string {
-        return "🐑 ";
+        return "🐑";
     }
 }
