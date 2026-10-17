@@ -26,8 +26,8 @@ async function main() {
 
     game.processCommand(command);
 
-    console.log("simulating email send delay...");
-    await wait(1);
+    // console.log("simulating email send delay...");
+    // await wait(1);
   }
 }
 

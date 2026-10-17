@@ -1,33 +1,23 @@
 import { Entity } from "./entity.ts";
 import { Player } from "./player.ts";
-import { Points, type Point } from "../../lib/common.ts";
+import { Dir, Dirs, Points, type Point } from "../../lib/common.ts";
+import type { EntityType } from "./entity.ts";
 
 export class RandomThing extends Entity {
   public char = "🐑";
 
   override move() {
     // Random movement for now.
-    const direction = Math.floor(this.level.rng() * 4);
-    switch (direction) {
-      case 0:
-        this.p.x = Math.max(0, this.p.x - 1);
-        break;
-      case 1:
-        this.p.x = Math.min(this.level.width - 1, this.p.x + 1);
-        break;
-      case 2:
-        this.p.y = Math.max(0, this.p.y - 1);
-        break;
-      case 3:
-        this.p.y = Math.min(this.level.height - 1, this.p.y + 1);
-        break;
-    }
+    const direction = Math.floor(this.level.rng() * 4) as Dir;
+    const newP = Points.add(this.p, Dirs.toPoint(direction));
+    this.moveTo(newP);
   }
 }
 
 export class TargetingEnemy extends Entity {
   // Can use these or define a function. Relative to this thing.
   public staticMovePossibilities: Point[] = [];
+  public type: EntityType = "enemy";
 
   getMovePossibilities(): Point[] {
     return this.staticMovePossibilities;
@@ -55,7 +45,7 @@ export class TargetingEnemy extends Entity {
     const closestPlayer = this.getClosestPlayer();
     if (!closestPlayer) return;
 
-    let bestMove: Point | null = null;
+    let bestNewP: Point | null = null;
     let bestDist = Infinity;
     let bestSqRealDist = Infinity;
     for (const move of this.getMovePossibilities()) {
@@ -78,13 +68,13 @@ export class TargetingEnemy extends Entity {
       ) {
         bestDist = dist;
         bestSqRealDist = sqRealDist;
-        bestMove = move;
+        bestNewP = newP;
       }
     }
 
-    if (bestMove) {
+    if (bestNewP) {
       // TODO: This will need to attack things somehow.
-      Points.addTo(this.p, bestMove);
+      this.moveTo(bestNewP);
     }
   }
 }
