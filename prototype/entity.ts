@@ -1,4 +1,4 @@
-import { Level } from "./level";
+import { Level } from "./level.ts";
 
 export class Entity {
     public x: number = 0;
