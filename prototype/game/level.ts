@@ -19,7 +19,6 @@ export class Level {
   }
 
   next() {
-    this.turnLog = [];
     for (const entity of this.entities) {
       entity.move();
     }

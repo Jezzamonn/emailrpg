@@ -1,8 +1,7 @@
 import { Level } from "./level.ts";
 import { KingPlayer, Player } from "./entity/player.ts";
 import { DiagEnemy, OrthoEnemy, RandomThing } from "./entity/enemy.ts";
-import { Dirs } from "../lib/common.ts";
-import { parseActions } from "./action.ts";
+import { type Action, parseActions } from "./action.ts";
 
 export class Game {
   public currentLevel: Level;
@@ -13,7 +12,13 @@ export class Game {
 
   processCommand(command: string) {
     // Handle command
-    const actions = parseActions(command);
+    let actions: Action[];
+    try {
+      actions = parseActions(command);
+    } catch (error) {
+      console.error(`${error}`);
+      return;
+    }
 
     // Just handle 1 action so far?
     // Find the right player
@@ -24,10 +29,15 @@ export class Game {
     ) as Player | undefined;
 
     if (!player) {
-      throw new Error(`Couldn't find anything called ${actions[0].target}`);
+      console.error(`Couldn't find anything called ${actions[0].target}`);
+      return;
     }
 
-    player.applyAction(actions[0]);
+    try {
+      player.applyAction(actions[0]);
+    } catch (error) {
+      console.error(`${error}`);
+    }
 
     // Next level state
     this.currentLevel.next();
