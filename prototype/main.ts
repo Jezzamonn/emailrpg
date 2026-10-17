@@ -1,14 +1,13 @@
 import readline from "node:readline";
-import { Level } from "./game/level.ts";
-import { Entity } from "./game/entity/entity.ts";
-import { makeLevel } from "./game/level.ts";
+import { wait } from "./lib/util.ts";
+import { Game } from "./game/game.ts";
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-const level = makeLevel();
+const game = new Game();
 
 function question(prompt: string): Promise<string> {
   return new Promise((resolve) => {
@@ -21,11 +20,14 @@ function question(prompt: string): Promise<string> {
 async function main() {
   while (true) {
     console.clear();
-    console.log(level.renderText());
+    console.log(game.currentLevel.renderText());
 
-    await question("Enter command: ");
+    const command = await question("Enter command:\n");
 
-    level.next();
+    game.processCommand(command);
+
+    console.log("simulating email send delay...");
+    await wait(1);
   }
 }
 

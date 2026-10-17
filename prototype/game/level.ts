@@ -62,12 +62,3 @@ export class Level {
     this.entities.push(entity);
   }
 }
-
-export function makeLevel(): Level {
-  const level = new Level(11, 11);
-  level.addEntity(Player, 5, 10);
-  level.addEntity(DiagEnemy, 3, 3);
-  level.addEntity(OrthoEnemy, 7, 3);
-  level.addEntity(RandomThing, 1, 1);
-  return level;
-}
