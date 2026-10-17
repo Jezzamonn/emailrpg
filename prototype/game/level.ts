@@ -47,6 +47,10 @@ export class Level {
   inBound(p: Point): boolean {
     return p.x >= 0 && p.x < this.width && p.y >= 0 && p.y < this.height;
   }
+
+  entityAt(p: Point): Entity | undefined {
+    return this.entities.find((e) => e.p.x === p.x && e.p.y === p.y);
+  }
 }
 
 export function makeLevel(): Level {
