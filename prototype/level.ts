@@ -1,5 +1,6 @@
 import { Entity } from "./entity/entity.ts";
 import { seededRandom } from "./lib/util.ts";
+import type { Point } from "./lib/common.ts";
 
 export class Level {
   public width: number;
@@ -35,12 +36,16 @@ export class Level {
       const row = (y + 1).toString().padStart(labelWidth, " ");
       output += `${row}`;
       for (let x = 0; x < this.width; x++) {
-        const entity = this.entities.find((e) => e.x === x && e.y === y);
+        const entity = this.entities.find((e) => e.p.x === x && e.p.y === y);
         output += entity ? entity.getText() : " .";
       }
       output += "\n";
     }
     return output;
+  }
+
+  inBound(p: Point): boolean {
+    return p.x >= 0 && p.x < this.width && p.y >= 0 && p.y < this.height;
   }
 }
 
@@ -48,8 +53,8 @@ export function makeLevel(): Level {
   const level = new Level(10, 10);
   for (let i = 0; i < 3; i++) {
     const entity = new Entity(level);
-    entity.x = Math.floor(Math.random() * level.width);
-    entity.y = Math.floor(Math.random() * level.height);
+    entity.p.x = Math.floor(level.rng() * level.width);
+    entity.p.y = Math.floor(level.rng() * level.height);
     level.entities.push(entity);
   }
   return level;

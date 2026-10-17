@@ -1,8 +1,8 @@
 import { Level } from "../level.ts";
+import type { Point } from "../lib/common.ts";
 
 export class Entity {
-  public x: number = 0;
-  public y: number = 0;
+  public p: Point = { x: 0, y: 0 };
 
   public level: Level;
 
