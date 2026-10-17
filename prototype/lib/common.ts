@@ -19,12 +19,13 @@ export const Points = {
   },
 };
 
-export enum Dir {
-  Up,
-  Down,
-  Left,
-  Right,
-}
+export const Dir = {
+  Up: 0,
+  Down: 1,
+  Left: 2,
+  Right: 3,
+} as const;
+export type Dir = (typeof Dir)[keyof typeof Dir];
 
 export const Dirs = {
   cornersInDirection(dir: Dir | undefined): Point[] {
