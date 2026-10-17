@@ -1,7 +1,7 @@
 import readline from "node:readline";
-import { Level } from "./level.ts";
-import { Entity } from "./entity/entity.ts";
-import { makeLevel } from "./level.ts";
+import { Level } from "./game/level.ts";
+import { Entity } from "./game/entity/entity.ts";
+import { makeLevel } from "./game/level.ts";
 
 const rl = readline.createInterface({
   input: process.stdin,

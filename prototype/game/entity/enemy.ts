@@ -1,6 +1,6 @@
 import { Entity } from "./entity.ts";
 import { Player } from "./player.ts";
-import { Points, type Point } from "../lib/common.ts";
+import { Points, type Point } from "../../lib/common.ts";
 
 export class RandomThing extends Entity {
   public char = "🐑";
