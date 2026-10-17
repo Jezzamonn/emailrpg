@@ -1,6 +1,8 @@
 import { Entity } from "./entity/entity.ts";
 import { seededRandom } from "../lib/util.ts";
 import type { Point } from "../lib/common.ts";
+import { DiagEnemy, RandomThing, OrthoEnemy } from "./entity/enemy.ts";
+import { Player } from "./entity/player.ts";
 
 export class Level {
   public width: number;
@@ -31,6 +33,7 @@ export class Level {
     }
     output += "\n";
 
+    // TODO: Chess goes up from 1 to 10, maybe do that?
     for (let y = 0; y < this.height; y++) {
       // Row number with constant width of 2 characters
       const row = (y + 1).toString().padStart(labelWidth, " ");
@@ -51,15 +54,20 @@ export class Level {
   entityAt(p: Point): Entity | undefined {
     return this.entities.find((e) => e.p.x === p.x && e.p.y === p.y);
   }
+
+  addEntity(type: typeof Entity, x: number, y: number) {
+    const entity = new type(this);
+    entity.p.x = x;
+    entity.p.y = y;
+    this.entities.push(entity);
+  }
 }
 
 export function makeLevel(): Level {
-  const level = new Level(10, 10);
-  for (let i = 0; i < 3; i++) {
-    const entity = new Entity(level);
-    entity.p.x = Math.floor(level.rng() * level.width);
-    entity.p.y = Math.floor(level.rng() * level.height);
-    level.entities.push(entity);
-  }
+  const level = new Level(11, 11);
+  level.addEntity(Player, 5, 10);
+  level.addEntity(DiagEnemy, 3, 3);
+  level.addEntity(OrthoEnemy, 7, 3);
+  level.addEntity(RandomThing, 1, 1);
   return level;
 }
