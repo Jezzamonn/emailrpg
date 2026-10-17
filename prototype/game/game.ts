@@ -35,8 +35,8 @@ export class Game {
 }
 
 function makeLevel(): Level {
-  const level = new Level(11, 11);
-  level.addEntity(KingPlayer, 5, 10);
+  const level = new Level(9, 9);
+  level.addEntity(KingPlayer, 4, 8);
   level.addEntity(DiagEnemy, 3, 3);
   level.addEntity(OrthoEnemy, 7, 3);
   level.addEntity(RandomThing, 1, 1);
