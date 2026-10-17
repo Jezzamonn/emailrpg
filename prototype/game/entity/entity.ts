@@ -4,7 +4,7 @@ import type { Action } from "../action.ts";
 
 export type EntityType = "player" | "enemy" | "obstacle";
 
-const killable: Map<EntityType, Set<EntityType>> = new Map();
+export const killable: Map<EntityType, Set<EntityType>> = new Map();
 killable.set("enemy", new Set(["player"]));
 killable.set("player", new Set(["enemy"]));
 killable.set("obstacle", new Set());
@@ -31,6 +31,10 @@ export class Entity {
 
   move() {
     // Implemented by subclass.
+  }
+
+  canKill(other: Entity): boolean {
+    return killable.get(this.type)?.has(other.type) ?? false;
   }
 
   // Internalish method that handles taking and stuff

@@ -11,12 +11,15 @@ export class Level {
   public entities: Entity[] = [];
   public rng: () => number = seededRandom("are you a young den'ist?");
 
+  public turnLog: string[] = [];
+
   constructor(width: number, height: number) {
     this.width = width;
     this.height = height;
   }
 
   next() {
+    this.turnLog = [];
     for (const entity of this.entities) {
       entity.move();
     }

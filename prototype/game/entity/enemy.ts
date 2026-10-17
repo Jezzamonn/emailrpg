@@ -51,7 +51,12 @@ export class TargetingEnemy extends Entity {
     for (const move of this.getMovePossibilities()) {
       const newP = Points.add(this.p, move);
       // TODO: Allow moving where attacking things are?
-      if (!this.level.inBound(newP) || this.level.entityAt(newP)) {
+      if (!this.level.inBound(newP)) {
+        continue;
+      }
+      const entityAt = this.level.entityAt(newP);
+
+      if (entityAt && !this.canKill(entityAt)) {
         continue;
       }
 
