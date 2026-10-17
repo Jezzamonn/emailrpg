@@ -10,8 +10,8 @@ export enum Dir {
   Right,
 }
 
-export class Dirs {
-  static cornersInDirection(dir: Dir | undefined): Point[] {
+export const Dirs = {
+  cornersInDirection(dir: Dir | undefined): Point[] {
     // What we have to multiply the width and height by to get the corners of an rectangle if the given direction.
     switch (dir) {
       case Dir.Up:
@@ -43,5 +43,32 @@ export class Dirs {
           { x: 1, y: 1 },
         ];
     }
-  }
-}
+  },
+
+  fromString(dir: string): Dir | undefined {
+    switch (dir.toLowerCase()) {
+      case "up":
+      case "u":
+      case "north":
+      case "n":
+        return Dir.Up;
+      case "down":
+      case "d":
+      case "south":
+      case "s":
+        return Dir.Down;
+      case "left":
+      case "l":
+      case "west":
+      case "w":
+        return Dir.Left;
+      case "right":
+      case "r":
+      case "east":
+      case "e":
+        return Dir.Right;
+      default:
+        return undefined;
+    }
+  },
+};
