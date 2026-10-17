@@ -1,10 +1,12 @@
 import { Entity } from "./entity/entity.ts";
+import { seededRandom } from "./lib/util.ts";
 
 export class Level {
   public width: number;
   public height: number;
 
   public entities: Entity[] = [];
+  public rng: () => number = seededRandom("are you a young den'ist?");
 
   constructor(width: number, height: number) {
     this.width = width;
@@ -40,4 +42,15 @@ export class Level {
     }
     return output;
   }
+}
+
+export function makeLevel(): Level {
+  const level = new Level(10, 10);
+  for (let i = 0; i < 3; i++) {
+    const entity = new Entity(level);
+    entity.x = Math.floor(Math.random() * level.width);
+    entity.y = Math.floor(Math.random() * level.height);
+    level.entities.push(entity);
+  }
+  return level;
 }

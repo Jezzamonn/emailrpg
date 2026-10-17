@@ -5,7 +5,7 @@ export class RandomThing extends Entity {
 
   move() {
     // Random movement for now.
-    const direction = Math.floor(Math.random() * 4);
+    const direction = Math.floor(this.level.rng() * 4);
     switch (direction) {
       case 0:
         this.x = Math.max(0, this.x - 1);
@@ -23,6 +23,4 @@ export class RandomThing extends Entity {
   }
 }
 
-export class Enemy extends Entity {
-  public char = "👾";
-}
+export class Enemy extends Entity {}
