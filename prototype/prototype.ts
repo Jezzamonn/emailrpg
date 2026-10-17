@@ -1,4 +1,4 @@
-import readline from 'readline';
+import readline from 'node:readline';
 import { Level } from './level.ts';
 import { Entity } from './entity.ts';
 
