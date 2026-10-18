@@ -6,7 +6,37 @@
     <title>LD60 Game & Email Preview</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div class="email-client">
+      <div class="email-header">
+        <h2 class="email-subject">Re: LD60 Turn Update</h2>
+        <div class="email-meta">
+          <div><strong>From:</strong> game@ld60.workers.dev</div>
+          <div><strong>To:</strong> player@example.com</div>
+        </div>
+      </div>
+
+      <div class="email-body">
+        <p>Here is your current game state:</p>
+        <div class="gif-container">
+          <img id="email-gif" alt="Game Board (2-Frame GIF)" />
+        </div>
+        <p>Reply to this email with your next move (e.g. <code>k u</code>, <code>k d</code>, <code>k l</code>, <code>k r</code>).</p>
+      </div>
+
+      <div class="email-footer">
+        <form id="reply-form">
+          <input
+            id="reply-input"
+            type="text"
+            placeholder="Type your move here (e.g. k u)..."
+            autofocus
+            autocomplete="off"
+          />
+          <button type="submit">Send Reply</button>
+        </form>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
