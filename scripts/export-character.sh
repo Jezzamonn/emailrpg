@@ -21,7 +21,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SOURCE_FILE="${2:-$WORKSPACE_ROOT/assets/character.aseprite}"
-OUT_DIR="${1:-$WORKSPACE_ROOT/assets}"
+OUT_DIR="${1:-$WORKSPACE_ROOT/assets/exported}"
 
 if [[ ! -f "$SOURCE_FILE" ]]; then
   echo "Error: Source file not found at: $SOURCE_FILE" >&2

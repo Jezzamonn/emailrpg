@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-OUT_DIR="${1:-$WORKSPACE_ROOT/assets}"
+OUT_DIR="${1:-$WORKSPACE_ROOT/assets/exported}"
 
 echo "========================================"
 echo "Exporting Aseprite assets to: $OUT_DIR"
