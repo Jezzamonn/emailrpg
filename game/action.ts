@@ -23,18 +23,20 @@ export function parseActions(command: string): Action[] {
   const actions: Action[] = [];
   const args = command.trim().split(/\s+/);
 
-  let nextValidTokenTypes: TokenType[] = ["target"];
+  let nextValidTokenTypes: TokenType[] = ["target", "action"];
 
   for (let i = 0; i < args.length; i++) {
     let arg = args[i].toLowerCase();
-    let argAsTarget = arg.match(/k|q/) ? arg : undefined;
     let argAsAction = Dirs.fromString(args[i]);
+    let argAsTarget =
+      arg.length === 1 && /[a-z]/i.test(arg) && argAsAction === undefined
+        ? arg
+        : undefined;
     let argAsDist = parseIntOrUndefined(arg);
 
     let matched = false;
     for (const tokenType of nextValidTokenTypes) {
       if (tokenType === "target" && argAsTarget != undefined) {
-        // new action
         const currentAction = new Action();
         currentAction.target = argAsTarget;
         actions.push(currentAction);
@@ -44,15 +46,18 @@ export function parseActions(command: string): Action[] {
       }
 
       if (tokenType === "action" && argAsAction != undefined) {
+        if (actions.length === 0 || actions[actions.length - 1].dir != undefined) {
+          actions.push(new Action());
+        }
         actions[actions.length - 1].dir = argAsAction;
-        nextValidTokenTypes = ["dist", "action"];
+        nextValidTokenTypes = ["dist", "target", "action"];
         matched = true;
         break;
       }
 
-      if (tokenType === "dist" && argAsDist != undefined) {
+      if (tokenType === "dist" && argAsDist != undefined && actions.length > 0) {
         actions[actions.length - 1].dist = argAsDist;
-        nextValidTokenTypes = ["target"];
+        nextValidTokenTypes = ["target", "action"];
         matched = true;
         break;
       }

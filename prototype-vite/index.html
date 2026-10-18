@@ -6,33 +6,71 @@
     <title>LD60 Game & Email Preview</title>
   </head>
   <body>
+    <!-- Persistent "start game with email:" bar -->
+    <div class="session-bar">
+      <form id="start-email-form" class="session-form">
+        <label for="start-email-input">Start game with email:</label>
+        <input
+          id="start-email-input"
+          type="email"
+          placeholder="e.g. player1@example.com"
+          value="player1@example.com"
+          required
+        />
+        <button type="submit">Start</button>
+      </form>
+      <div id="session-switcher" class="session-switcher" style="display: none;">
+        <span>Active Sessions:</span>
+        <div id="session-pills"></div>
+      </div>
+    </div>
+
+    <!-- Email Client UI -->
     <div class="email-client">
-      <div class="email-header">
-        <h2 class="email-subject">Re: LD60 Turn Update</h2>
+      <!-- Email Header (revealed when an email is present) -->
+      <div id="email-header" class="email-header" style="display: none;">
+        <div class="email-header-top">
+          <h2 id="email-subject" class="email-subject"></h2>
+          <div class="view-toggles">
+            <button id="btn-html-view" class="view-toggle-btn active" type="button">HTML View</button>
+            <button id="btn-text-view" class="view-toggle-btn" type="button">Plain Text</button>
+          </div>
+        </div>
         <div class="email-meta">
-          <div><strong>From:</strong> game@ld60.workers.dev</div>
-          <div><strong>To:</strong> player@example.com</div>
+          <div><strong>From:</strong> <span id="email-from">game@ld60.workers.dev</span></div>
+          <div><strong>To:</strong> <span id="email-to"></span></div>
         </div>
       </div>
 
-      <div class="email-body">
-        <p>Here is your current game state:</p>
-        <div class="gif-container">
-          <img id="email-gif" alt="Game Board (2-Frame GIF)" />
+      <!-- Email Content Container -->
+      <div id="email-content" class="email-content">
+        <!-- Initial Blank State -->
+        <div id="blank-state" class="blank-state">
+          <div class="blank-icon">✉️</div>
+          <h3>No game started yet</h3>
+          <p>Enter an email address above and click <strong>Start</strong> to begin.</p>
         </div>
-        <p>Reply to this email with your next move (e.g. <code>k u</code>, <code>k d</code>, <code>k l</code>, <code>k r</code>).</p>
+
+        <!-- Rendered HTML Email Body -->
+        <div id="html-body-container" class="email-body-view" style="display: none;"></div>
+
+        <!-- Rendered Plain Text Email Body -->
+        <div id="text-body-container" class="email-body-view" style="display: none;">
+          <pre id="text-body-pre" class="text-body-pre"></pre>
+        </div>
       </div>
 
-      <div class="email-footer">
+      <!-- Reply / Send Composer Footer -->
+      <div id="email-footer" class="email-footer" style="display: none;">
         <form id="reply-form">
           <input
             id="reply-input"
             type="text"
-            placeholder="Type your move here (e.g. k u)..."
+            placeholder="Reply to email..."
             autofocus
             autocomplete="off"
           />
-          <button type="submit">Send Reply</button>
+          <button id="reply-submit-btn" type="submit">Send Reply</button>
         </form>
       </div>
     </div>

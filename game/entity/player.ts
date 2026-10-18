@@ -3,6 +3,7 @@ import type { EntityType } from "./entity.ts";
 import { Surface, Colors } from "../lib/surface.ts";
 
 export class Player extends Entity {
+  public email?: string;
   public letter = "";
   public type: EntityType = "player";
 
