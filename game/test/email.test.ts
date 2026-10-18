@@ -82,7 +82,7 @@ describe("Handlebars Email Templating", () => {
     assert.match(text, /Title & Subtitle/);
     assert.match(text, /A paragraph with bold and links\./);
     assert.match(text, /\[Game Board \(2-Frame GIF\)\]/);
-    assert.match(text, /- u, d\n- wait/);
+    assert.match(text, /- u, d\s*\n\s*- wait/);
     // Ensure no raw HTML tags remain
     assert.equal(/<[^>]+>/.test(text), false);
   });

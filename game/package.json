@@ -12,9 +12,11 @@
   },
   "dependencies": {
     "gifenc": "^1.0.3",
-    "handlebars": "^4.7.10"
+    "handlebars": "^4.7.10",
+    "html-to-text": "^10.0.1"
   },
   "devDependencies": {
-    "@types/handlebars": "^4.0.40"
+    "@types/handlebars": "^4.0.40",
+    "@types/html-to-text": "^9.0.4"
   }
 }
