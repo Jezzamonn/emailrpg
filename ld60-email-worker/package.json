@@ -12,5 +12,9 @@
     "@types/node": "^26.6.5",
     "typescript": "^5.5.2",
     "wrangler": "^4.151.1"
+  },
+  "dependencies": {
+    "mimetext": "^3.0.28",
+    "postal-mime": "^4.0.8"
   }
 }
