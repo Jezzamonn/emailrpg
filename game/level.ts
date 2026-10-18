@@ -1,4 +1,5 @@
 import { Entity } from "./entity/entity.ts";
+import type { Player } from "./entity/player.ts";
 import { seededRandom } from "./lib/util.ts";
 import type { Point } from "./lib/common.ts";
 import { Surface, rgba } from "./lib/surface.ts";
@@ -6,6 +7,9 @@ import { Surface, rgba } from "./lib/surface.ts";
 export class Level {
   public width: number;
   public height: number;
+  public name?: string;
+  public dungeonId?: number;
+  public playerStart?: Point;
 
   public entities: Entity[] = [];
   public rng: () => number = seededRandom("are you a young den'ist?");
@@ -17,13 +21,21 @@ export class Level {
     this.height = height;
   }
 
+  hasEnemies(): boolean {
+    return this.entities.some((e) => e.type === "enemy");
+  }
+
   next() {
     for (const entity of this.entities) {
       entity.move();
     }
   }
 
-  renderText(): string {
+  entitiesAt(p: Point): Entity[] {
+    return this.entities.filter((e) => e.p.x === p.x && e.p.y === p.y);
+  }
+
+  renderText(forPlayer?: Player): string {
     let output = "";
     const labelWidth = 3;
 
@@ -34,21 +46,32 @@ export class Level {
     }
     output += "\n";
 
-    // TODO: Chess goes up from 1 to 10, maybe do that?
+    // Chess goes up from 1 to 10, maybe do that?
     for (let y = 0; y < this.height; y++) {
       // Row number with constant width of 2 characters
       const row = (y + 1).toString().padStart(labelWidth, " ");
       output += `${row}`;
       for (let x = 0; x < this.width; x++) {
-        const entity = this.entities.find((e) => e.p.x === x && e.p.y === y);
-        output += entity ? entity.getText() : " .";
+        const entitiesOnTile = this.entitiesAt({ x, y });
+        if (entitiesOnTile.length === 0) {
+          output += " .";
+        } else {
+          // When rendering, we pick one of the players on a tile (always preferring the player that we're rendering the game of)
+          let picked: Entity;
+          if (forPlayer && entitiesOnTile.some((e) => e === forPlayer)) {
+            picked = forPlayer;
+          } else {
+            picked = entitiesOnTile.find((e) => e.type === "player") ?? entitiesOnTile[0];
+          }
+          output += picked.getText();
+        }
       }
       output += "\n";
     }
     return output;
   }
 
-  render(surface: Surface, tileSize: number = 16, frame: number = 0): void {
+  render(surface: Surface, tileSize: number = 16, frame: number = 0, forPlayer?: Player): void {
     // Draw background grid tiles
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
@@ -58,9 +81,20 @@ export class Level {
       }
     }
 
-    // Draw all entities
-    for (const entity of this.entities) {
-      entity.render(surface, tileSize, frame);
+    // Draw entities: pick one of the players on a tile (always preferring forPlayer)
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const entitiesOnTile = this.entitiesAt({ x, y });
+        if (entitiesOnTile.length === 0) continue;
+
+        let picked: Entity;
+        if (forPlayer && entitiesOnTile.some((e) => e === forPlayer)) {
+          picked = forPlayer;
+        } else {
+          picked = entitiesOnTile.find((e) => e.type === "player") ?? entitiesOnTile[0];
+        }
+        picked.render(surface, tileSize, frame);
+      }
     }
   }
 

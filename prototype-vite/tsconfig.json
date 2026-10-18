@@ -24,5 +24,6 @@
       "@game/*": ["../game/*"]
     }
   },
-  "include": ["src", "../game/**/*.ts", "../game/types/**/*.d.ts"]
+  "include": ["src", "../game/**/*.ts", "../game/types/**/*.d.ts"],
+  "exclude": ["../game/test"]
 }

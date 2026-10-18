@@ -73,7 +73,8 @@ export function handleIncomingEmail(
   // Phase 2: User is awaiting customization -> create player, place on board, send intro email
   if (user.state === "awaiting_customization") {
     const player = game.createPlayerForUser(to, body);
-    const gifBytes = renderLevelToGif(game.currentLevel, 16);
+    const level = game.getLevelForUser(to);
+    const gifBytes = renderLevelToGif(level, 16, {}, player);
 
     const subject = incomingSubject.toLowerCase().startsWith("re:")
       ? incomingSubject
@@ -86,15 +87,15 @@ export function handleIncomingEmail(
       `Your character has been created as [${player.letter}] and placed in the hub world at (${player.p.x + 1}, ${player.p.y + 1}).`,
       ``,
       `Current Board State:`,
-      game.currentLevel.renderText(),
+      level.renderText(player),
       `[An animated 2-frame game board is attached as game.gif]`,
       ``,
       `How to play:`,
-      `Reply to this email with your movement commands:`,
-      `  - 'u' or 'up' (or '${player.letter.toLowerCase()} u' to move up)`,
-      `  - 'd' or 'down' (or '${player.letter.toLowerCase()} d' to move down)`,
-      `  - 'l' or 'left' (or '${player.letter.toLowerCase()} l' to move left)`,
-      `  - 'r' or 'right' (or '${player.letter.toLowerCase()} r' to move right)`,
+      `Reply to this email with your commands:`,
+      `  - Move: 'u', 'd', 'l', 'r' or 'up 2', 'left 3'`,
+      `  - 'wait' (skip turn / let enemies move)`,
+      `  - 'dungeon' (enter your private pregenerated dungeon challenge)`,
+      `  - 'hub' (return to the shared hub world)`,
     ].join("\n");
 
     const html = `
@@ -116,10 +117,10 @@ export function handleIncomingEmail(
     <div style="font-weight: 600; color: #374151; margin-bottom: 0.4rem;">How to play:</div>
     <div>Reply to this email with your next move:</div>
     <ul style="margin: 0.4rem 0 0 1.2rem; padding: 0; line-height: 1.6;">
-      <li><code>u</code> or <code>up</code> (move up)</li>
-      <li><code>d</code> or <code>down</code> (move down)</li>
-      <li><code>l</code> or <code>left</code> (move left)</li>
-      <li><code>r</code> or <code>right</code> (move right)</li>
+      <li><code>u</code>, <code>d</code>, <code>l</code>, <code>r</code> (or with distance: <code>up 2</code>, <code>left 3</code>)</li>
+      <li><code>wait</code> (wait a turn)</li>
+      <li><code>dungeon</code> (enter dungeon challenge)</li>
+      <li><code>hub</code> (return to hub world)</li>
     </ul>
   </div>
 </div>
@@ -140,34 +141,51 @@ export function handleIncomingEmail(
   // Phase 3: Active user -> execute command and return turn update
   const command = body;
   const commandExecuted = game.processCommand(command, to);
-  const gifBytes = renderLevelToGif(game.currentLevel, 16);
+  const level = game.getLevelForUser(to);
+  const gifBytes = renderLevelToGif(level, 16, {}, user.player);
 
   const subject = incomingSubject.toLowerCase().startsWith("re:")
     ? incomingSubject
     : `Re: ${incomingSubject || "Move"}`;
 
+  const locationInfo =
+    user.location === "dungeon"
+      ? `Dungeon (${level.name ?? "Level " + (user.dungeonLevelIndex + 1)})`
+      : "Shared Hub World";
+
+  const enemiesPresent = level.hasEnemies();
+  const rulesNote = enemiesPresent
+    ? "Enemies are present: movement is limited to 2 squares per direction."
+    : "No enemies present: you may move freely.";
+
   const text = [
-    `LD60 Game - Turn Update`,
-    `========================`,
+    `LD60 Game - Turn Update [${locationInfo}]`,
+    `========================================`,
     ``,
-    commandExecuted ? `Move executed: "${command}"` : `Invalid or failed move: "${command}"`,
+    commandExecuted ? `Command executed: "${command}"` : `Invalid or failed command: "${command}"`,
+    rulesNote,
     ``,
     `Current Board State:`,
-    game.currentLevel.renderText(),
+    level.renderText(user.player),
     `[An animated 2-frame game board is attached as game.gif]`,
     ``,
-    `Reply to this email with your next move (e.g. 'u', 'd', 'l', 'r').`,
+    user.location === "dungeon"
+      ? enemiesPresent
+        ? `Reply with move ('u 2', 'wait', etc.) or 'hub' to return.`
+        : `Dungeon cleared! Reply with 'next' for next level, or 'hub' to return.`
+      : `Reply with move ('u', 'left 3', etc.) or 'dungeon' to enter dungeon.`,
   ].join("\n");
 
   const html = `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; line-height: 1.5; max-width: 520px; margin: 0 auto;">
-  <h2 style="margin: 0 0 0.75rem 0; color: #111827; font-size: 1.25rem;">LD60 Turn Update</h2>
+  <h2 style="margin: 0 0 0.75rem 0; color: #111827; font-size: 1.25rem;">LD60 Turn Update — ${locationInfo}</h2>
   
   <div style="background: ${commandExecuted ? "#f3f4f6" : "#fef2f2"}; border-left: 4px solid ${commandExecuted ? "#3b82f6" : "#ef4444"}; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.25rem;">
-    <div style="font-size: 0.85rem; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Move Status</div>
+    <div style="font-size: 0.85rem; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Status</div>
     <div style="font-size: 1rem; font-weight: 500; color: #1f2937; margin-top: 0.25rem;">
-      ${commandExecuted ? `Move executed: <code>${escapeHtml(command)}</code>` : `Could not execute: <code>${escapeHtml(command)}</code>`}
+      ${commandExecuted ? `Command executed: <code>${escapeHtml(command)}</code>` : `Could not execute: <code>${escapeHtml(command)}</code>`}
     </div>
+    <div style="font-size: 0.85rem; color: #6b7280; margin-top: 0.35rem;">${rulesNote}</div>
   </div>
 
   <div style="text-align: center; margin: 1.5rem 0;">
@@ -175,7 +193,13 @@ export function handleIncomingEmail(
   </div>
 
   <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 1rem; font-size: 0.9rem; color: #4b5563; margin-top: 1rem;">
-    <div>Reply to this email with your next move (e.g. <code>u</code>, <code>d</code>, <code>l</code>, <code>r</code>).</div>
+    <div>${
+      user.location === "dungeon"
+        ? enemiesPresent
+          ? "Reply with movement (e.g. <code>u 2</code>, <code>left</code>), <code>wait</code>, or <code>hub</code> to exit."
+          : "Level cleared! Reply with <code>next</code> for next challenge, or <code>hub</code> to return."
+        : "Move freely (e.g. <code>u</code>, <code>left 3</code>), or enter the dungeon with <code>dungeon</code>."
+    }</div>
   </div>
 </div>
 `.trim();

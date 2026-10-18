@@ -45,11 +45,14 @@ export class Entity {
       return false;
     }
 
-    const entityAtTarget = this.level.entityAt(p);
-    if (entityAtTarget) {
+    const entitiesAtTarget = this.level.entitiesAt(p);
+    for (const entityAtTarget of entitiesAtTarget) {
       // Check if we can kill it
       if (killable.get(this.type)?.has(entityAtTarget.type)) {
         entityAtTarget.die();
+      } else if (this.type === "player" && entityAtTarget.type === "player") {
+        // Players can overlap
+        continue;
       } else {
         console.log(
           "Cannot move to position, entity is not killable:",
@@ -59,7 +62,7 @@ export class Entity {
       }
     }
 
-    this.p = p;
+    this.p = { x: p.x, y: p.y };
     return true;
   }
 
@@ -67,33 +70,33 @@ export class Entity {
     return this.char;
   }
 
-  applyAction(action: Action) {
+  applyAction(action: Action): boolean {
     const { dir, dist } = action;
     if (dir == undefined) {
       console.log("No direction specified in action.");
-      return;
+      return false;
     }
 
-    if (dist == 0) {
-      console.log("Distance is zero in action.");
-      return;
+    if (dist <= 0) {
+      console.log("Distance is <= 0 in action.");
+      return false;
     }
 
     const dirPoint = Dirs.toPoint(dir);
     const newP = Points.add(this.p, Points.scale(dirPoint, dist));
 
     if (!this.level.inBound(newP)) {
-      // Should probably be an error or something.
       console.log("New position out of bounds:", newP);
-      return;
+      return false;
     }
-
-    // TODO: Should log something if we can't move?
 
     const moved = this.moveTo(newP);
     if (!moved) {
       console.log("Failed to move to new position:", newP);
+      return false;
     }
+
+    return true;
   }
 
   render(surface: Surface, tileSize: number = 16, frame: number = 0): void {

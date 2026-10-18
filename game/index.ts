@@ -1,5 +1,6 @@
 export * from "./game.ts";
 export * from "./level.ts";
+export * from "./dungeon.ts";
 export * from "./action.ts";
 export * from "./entity/entity.ts";
 export * from "./entity/player.ts";

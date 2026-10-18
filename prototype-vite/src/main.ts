@@ -146,8 +146,8 @@ function renderUI() {
     replyInput.placeholder = "Choose player look (e.g. 'King', 'Queen')...";
     replySubmitBtn.textContent = "Send Customization";
   } else {
-    replyInput.placeholder = "Enter command (e.g. u, d, l, r or k u)...";
-    replySubmitBtn.textContent = "Send Move";
+    replyInput.placeholder = "Enter command (e.g. u, d 2, left 3, wait, dungeon, hub)...";
+    replySubmitBtn.textContent = "Send Command";
   }
 
   setView(currentView);

@@ -1,6 +1,7 @@
 import { GIFEncoder, quantize, applyPalette } from "gifenc";
 import { Surface } from "./surface.ts";
 import type { Level } from "../level.ts";
+import type { Player } from "../entity/player.ts";
 
 export interface GifOptions {
   delay?: number; // Delay in ms per frame (default: 500)
@@ -49,7 +50,8 @@ export function encodeSurfacesToGif(
 export function renderLevelToGif(
   level: Level,
   tileSize: number = 16,
-  options: GifOptions = {}
+  options: GifOptions = {},
+  forPlayer?: Player
 ): Uint8Array {
   const width = level.width * tileSize;
   const height = level.height * tileSize;
@@ -57,8 +59,8 @@ export function renderLevelToGif(
   const frame0 = new Surface(width, height);
   const frame1 = new Surface(width, height);
 
-  level.render(frame0, tileSize, 0);
-  level.render(frame1, tileSize, 1);
+  level.render(frame0, tileSize, 0, forPlayer);
+  level.render(frame1, tileSize, 1, forPlayer);
 
   return encodeSurfacesToGif([frame0, frame1], options);
 }
