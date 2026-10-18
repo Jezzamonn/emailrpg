@@ -11,14 +11,7 @@ export class Player extends Entity {
   public override type: EntityType = "player";
   public spawnPoint: Point = { x: 0, y: 0 };
 
-  override die() {
-    super.die();
-    // Respawn on death
-    this.p = { ...this.spawnPoint };
-    if (!this.level.entities.includes(this)) {
-      this.level.entities.push(this);
-    }
-  }
+  // TODO: When the player dies they should go back to the main world.
 
   transitionToLevel(newLevel: Level, targetPos?: Point) {
     const oldIdx = this.level.entities.indexOf(this);

@@ -1,5 +1,5 @@
 import { Level } from "./level.ts";
-import { KingPlayer, Player } from "./entity/player.ts";
+import { Player } from "./entity/player.ts";
 import { type Action, parseActions } from "./action.ts";
 import type { Point } from "./lib/common.ts";
 import {
@@ -128,7 +128,7 @@ export class Game {
     const chars = ["🤴", "👸", "🧙", "🧝", "🧑‍🚀", "🦸", "🥷", "🧚"];
     const index = existingPlayers.length % chars.length;
 
-    const player = new KingPlayer(this.hubLevel);
+    const player = new Player(this.hubLevel);
     player.email = user.email;
     player.char = chars[index];
     player.p = { x: pos.x, y: pos.y };
