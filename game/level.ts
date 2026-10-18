@@ -1,6 +1,7 @@
 import { Entity } from "./entity/entity.ts";
 import { seededRandom } from "./lib/util.ts";
 import type { Point } from "./lib/common.ts";
+import { Surface, rgba } from "./lib/surface.ts";
 
 export class Level {
   public width: number;
@@ -45,6 +46,22 @@ export class Level {
       output += "\n";
     }
     return output;
+  }
+
+  render(surface: Surface, tileSize: number = 16, frame: number = 0): void {
+    // Draw background grid tiles
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const isAlt = (x + y) % 2 === 1;
+        const tileColor = isAlt ? rgba(35, 35, 35) : rgba(45, 45, 45);
+        surface.fillRect(x * tileSize, y * tileSize, tileSize, tileSize, tileColor);
+      }
+    }
+
+    // Draw all entities
+    for (const entity of this.entities) {
+      entity.render(surface, tileSize, frame);
+    }
   }
 
   inBound(p: Point): boolean {

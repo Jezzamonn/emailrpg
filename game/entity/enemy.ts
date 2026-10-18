@@ -2,6 +2,7 @@ import { Entity } from "./entity.ts";
 import { Player } from "./player.ts";
 import { Dir, Dirs, Points, type Point } from "../lib/common.ts";
 import type { EntityType } from "./entity.ts";
+import { Surface, Colors } from "../lib/surface.ts";
 
 export class RandomThing extends Entity {
   public char = "🐑";
@@ -11,6 +12,13 @@ export class RandomThing extends Entity {
     const direction = Math.floor(this.level.rng() * 4) as Dir;
     const newP = Points.add(this.p, Dirs.toPoint(direction));
     this.moveTo(newP);
+  }
+
+  override render(surface: Surface, tileSize: number = 16, frame: number = 0): void {
+    const yOffset = frame === 1 ? -1 : 0;
+    const px = this.p.x * tileSize;
+    const py = this.p.y * tileSize + yOffset;
+    surface.fillRect(px + 2, py + 2, tileSize - 4, tileSize - 4, Colors.Green);
   }
 }
 
@@ -81,6 +89,13 @@ export class TargetingEnemy extends Entity {
       // TODO: This will need to attack things somehow.
       this.moveTo(bestNewP);
     }
+  }
+
+  override render(surface: Surface, tileSize: number = 16, frame: number = 0): void {
+    const yOffset = frame === 1 ? -1 : 0;
+    const px = this.p.x * tileSize;
+    const py = this.p.y * tileSize + yOffset;
+    surface.fillRect(px + 2, py + 2, tileSize - 4, tileSize - 4, Colors.Red);
   }
 }
 

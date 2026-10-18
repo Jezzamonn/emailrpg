@@ -10,6 +10,6 @@
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts", "types/**/*.d.ts"]
 }
 

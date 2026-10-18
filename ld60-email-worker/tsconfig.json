@@ -43,5 +43,5 @@
 			"@game/*": ["../game/*"]
 		}
 	},
-	"include": ["src", "worker-configuration.d.ts", "../game/**/*.ts"]
+	"include": ["src", "worker-configuration.d.ts", "../game/**/*.ts", "../game/types/**/*.d.ts"]
 }

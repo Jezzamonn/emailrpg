@@ -1,6 +1,7 @@
 import { Level } from "../level.ts";
 import { Dirs, Points, type Point } from "../lib/common.ts";
 import type { Action } from "../action.ts";
+import { Surface, Colors } from "../lib/surface.ts";
 
 export type EntityType = "player" | "enemy" | "obstacle";
 
@@ -93,5 +94,12 @@ export class Entity {
     if (!moved) {
       console.log("Failed to move to new position:", newP);
     }
+  }
+
+  render(surface: Surface, tileSize: number = 16, frame: number = 0): void {
+    const yOffset = frame === 1 ? -1 : 0;
+    const px = this.p.x * tileSize;
+    const py = this.p.y * tileSize + yOffset;
+    surface.fillRect(px + 2, py + 2, tileSize - 4, tileSize - 4, Colors.LightGrey);
   }
 }
