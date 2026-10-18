@@ -1,8 +1,6 @@
 import { Entity } from "./entity/entity.ts";
-import { seededRandom } from "../lib/util.ts";
-import type { Point } from "../lib/common.ts";
-import { DiagEnemy, RandomThing, OrthoEnemy } from "./entity/enemy.ts";
-import { Player } from "./entity/player.ts";
+import { seededRandom } from "./lib/util.ts";
+import type { Point } from "./lib/common.ts";
 
 export class Level {
   public width: number;

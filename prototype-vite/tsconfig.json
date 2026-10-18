@@ -18,7 +18,11 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@game": ["../game/index.ts"],
+      "@game/*": ["../game/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "../game/**/*.ts"]
 }

@@ -1,5 +1,5 @@
 import { Level } from "../level.ts";
-import { Dirs, Points, type Point } from "../../lib/common.ts";
+import { Dirs, Points, type Point } from "../lib/common.ts";
 import type { Action } from "../action.ts";
 
 export type EntityType = "player" | "enemy" | "obstacle";

@@ -1,6 +1,6 @@
 import readline from "node:readline";
-import { wait } from "./lib/util.ts";
-import { Game } from "./game/game.ts";
+import { wait } from "../game/lib/util.ts";
+import { Game } from "../game/game.ts";
 
 const rl = readline.createInterface({
   input: process.stdin,

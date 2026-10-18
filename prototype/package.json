@@ -1,6 +1,7 @@
 {
   "type": "module",
   "scripts": {
+    "start": "node --experimental-strip-types main.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

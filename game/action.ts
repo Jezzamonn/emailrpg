@@ -1,4 +1,4 @@
-import { Dirs, type Dir } from "../lib/common.ts";
+import { Dirs, type Dir } from "./lib/common.ts";
 
 export class Action {
   public target: string | undefined;

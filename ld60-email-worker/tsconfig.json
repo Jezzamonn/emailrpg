@@ -36,6 +36,12 @@
 
 		/* Skip type checking all .d.ts files. */
 		"skipLibCheck": true,
-		"types": ["./worker-configuration.d.ts", "node"]
-	}
+		"types": ["./worker-configuration.d.ts", "node"],
+		"allowImportingTsExtensions": true,
+		"paths": {
+			"@game": ["../game/index.ts"],
+			"@game/*": ["../game/*"]
+		}
+	},
+	"include": ["src", "worker-configuration.d.ts", "../game/**/*.ts"]
 }
