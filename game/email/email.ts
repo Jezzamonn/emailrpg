@@ -4,6 +4,7 @@ import {
   renderWelcomeEmail,
   renderIntroEmail,
   renderTurnEmail,
+  htmlToPlainText,
 } from "./template.ts";
 
 export interface EmailRequest {
@@ -46,16 +47,8 @@ export function handleIncomingEmail(
       ? `Re: ${incomingSubject}`
       : "Welcome to the game!";
 
-    const text = [
-      "Welcome to the game!",
-      "====================",
-      "",
-      "Choose what your player looks like.",
-      "",
-      "Reply to this email with your character customization (e.g. 'King', 'Queen', 'Knight') to enter the world.",
-    ].join("\n");
-
     const html = renderWelcomeEmail();
+    const text = htmlToPlainText(html);
 
     return {
       from,
@@ -77,24 +70,6 @@ export function handleIncomingEmail(
       ? incomingSubject
       : `Re: ${incomingSubject || "Welcome to the game!"}`;
 
-    const text = [
-      `Welcome to the world!`,
-      `====================`,
-      ``,
-      `Your character has been created as [${player.letter}] and placed in the hub world at (${player.p.x + 1}, ${player.p.y + 1}).`,
-      ``,
-      `Current Board State:`,
-      level.renderText(player),
-      `[An animated 2-frame game board is attached as game.gif]`,
-      ``,
-      `How to play:`,
-      `Reply to this email with your commands:`,
-      `  - Move: 'u', 'd', 'l', 'r' or 'up 2', 'left 3'`,
-      `  - 'wait' (skip turn / let enemies move)`,
-      `  - 'dungeon' (enter your private pregenerated dungeon challenge)`,
-      `  - 'hub' (return to the shared hub world)`,
-    ].join("\n");
-
     const html = renderIntroEmail({
       player: {
         char: player.char,
@@ -104,6 +79,7 @@ export function handleIncomingEmail(
       },
       imageSrc,
     });
+    const text = htmlToPlainText(html);
 
     return {
       from,
@@ -137,24 +113,6 @@ export function handleIncomingEmail(
     ? "Enemies are present: movement is limited to 2 squares per direction."
     : "No enemies present: you may move freely.";
 
-  const text = [
-    `LD60 Game - Turn Update [${locationInfo}]`,
-    `========================================`,
-    ``,
-    commandExecuted ? `Command executed: "${command}"` : `Invalid or failed command: "${command}"`,
-    rulesNote,
-    ``,
-    `Current Board State:`,
-    level.renderText(user.player),
-    `[An animated 2-frame game board is attached as game.gif]`,
-    ``,
-    user.location === "dungeon"
-      ? enemiesPresent
-        ? `Reply with move ('u 2', 'wait', etc.) or 'hub' to return.`
-        : `Dungeon cleared! Reply with 'next' for next level, or 'hub' to return.`
-      : `Reply with move ('u', 'left 3', etc.) or 'dungeon' to enter dungeon.`,
-  ].join("\n");
-
   const html = renderTurnEmail({
     locationInfo,
     command,
@@ -164,6 +122,7 @@ export function handleIncomingEmail(
     inDungeon: user.location === "dungeon",
     enemiesPresent,
   });
+  const text = htmlToPlainText(html);
 
   return {
     from,

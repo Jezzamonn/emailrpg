@@ -6,6 +6,7 @@ import {
   renderWelcomeEmail,
   renderIntroEmail,
   renderTurnEmail,
+  htmlToPlainText,
 } from "../email/template.ts";
 
 describe("Handlebars Email Templating", () => {
@@ -66,7 +67,27 @@ describe("Handlebars Email Templating", () => {
     assert.match(html, /Reply with movement \(e\.g\. <code>u 2<\/code>, <code>left<\/code>\), <code>wait<\/code>, or <code>hub<\/code> to exit\./);
   });
 
-  it("handleIncomingEmail integrates with Handlebars templates across phases", () => {
+  it("htmlToPlainText strips HTML tags, formats lists and images, and decodes entities", () => {
+    const sampleHtml = `
+      <h2>Title &amp; Subtitle</h2>
+      <p>A paragraph with <strong>bold</strong> and <a href="#">links</a>.</p>
+      <img src="cid:game" alt="Game Board (2-Frame GIF)" />
+      <ul>
+        <li><code>u</code>, <code>d</code></li>
+        <li><code>wait</code></li>
+      </ul>
+    `;
+    const text = htmlToPlainText(sampleHtml);
+
+    assert.match(text, /Title & Subtitle/);
+    assert.match(text, /A paragraph with bold and links\./);
+    assert.match(text, /\[Game Board \(2-Frame GIF\)\]/);
+    assert.match(text, /- u, d\n- wait/);
+    // Ensure no raw HTML tags remain
+    assert.equal(/<[^>]+>/.test(text), false);
+  });
+
+  it("handleIncomingEmail integrates with Handlebars templates across phases and generates plaintext", () => {
     const game = new Game();
     const userEmail = "test@example.com";
 
@@ -77,6 +98,9 @@ describe("Handlebars Email Templating", () => {
     });
     assert.equal(res1.phase, "welcome");
     assert.match(res1.html, /Welcome to the game!/);
+    assert.match(res1.text, /Welcome to the game!/);
+    assert.match(res1.text, /Choose what your player looks like\./);
+    assert.equal(/<[^>]+>/.test(res1.text), false);
 
     // Phase 2: Intro / Character creation
     const res2 = handleIncomingEmail(game, {
@@ -87,6 +111,10 @@ describe("Handlebars Email Templating", () => {
     assert.equal(res2.playerLetter, "K");
     assert.match(res2.html, /Character Created!/);
     assert.match(res2.html, /\[K\]/);
+    assert.match(res2.text, /Character Created!/);
+    assert.match(res2.text, /\[Game Board \(2-Frame GIF\)\]/);
+    assert.match(res2.text, /- u, d, l, r/);
+    assert.equal(/<[^>]+>/.test(res2.text), false);
 
     // Phase 3: Turn move
     const res3 = handleIncomingEmail(game, {
@@ -95,5 +123,8 @@ describe("Handlebars Email Templating", () => {
     });
     assert.equal(res3.phase, "turn");
     assert.match(res3.html, /Command executed: <code>u 2<\/code>/);
+    assert.match(res3.text, /Command executed: u 2/);
+    assert.match(res3.text, /\[Game Board \(2-Frame GIF\)\]/);
+    assert.equal(/<[^>]+>/.test(res3.text), false);
   });
 });
