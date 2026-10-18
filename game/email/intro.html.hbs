@@ -1,0 +1,25 @@
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; line-height: 1.5; max-width: 520px; margin: 0 auto;">
+  <h2 style="margin: 0 0 0.75rem 0; color: #111827; font-size: 1.25rem;">Welcome to the world!</h2>
+  
+  <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.25rem;">
+    <div style="font-weight: 600; color: #166534;">Character Created!</div>
+    <div style="color: #15803d; font-size: 0.95rem; margin-top: 0.25rem;">
+      You have joined the hub world as <strong>{{player.char}} [{{player.letter}}]</strong> at position ({{player.displayX}}, {{player.displayY}}).
+    </div>
+  </div>
+
+  <div style="text-align: center; margin: 1.5rem 0;">
+    <img src="{{imageSrc}}" alt="Game Board (2-Frame GIF)" style="image-rendering: pixelated; width: 288px; height: 288px; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: inline-block;" />
+  </div>
+
+  <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 1rem; font-size: 0.9rem; color: #4b5563; margin-top: 1rem;">
+    <div style="font-weight: 600; color: #374151; margin-bottom: 0.4rem;">How to play:</div>
+    <div>Reply to this email with your next move:</div>
+    <ul style="margin: 0.4rem 0 0 1.2rem; padding: 0; line-height: 1.6;">
+      <li><code>u</code>, <code>d</code>, <code>l</code>, <code>r</code> (or with distance: <code>up 2</code>, <code>left 3</code>)</li>
+      <li><code>wait</code> (wait a turn)</li>
+      <li><code>dungeon</code> (enter dungeon challenge)</li>
+      <li><code>hub</code> (return to hub world)</li>
+    </ul>
+  </div>
+</div>

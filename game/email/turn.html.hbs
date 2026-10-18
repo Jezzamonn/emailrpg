@@ -1,0 +1,19 @@
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; line-height: 1.5; max-width: 520px; margin: 0 auto;">
+  <h2 style="margin: 0 0 0.75rem 0; color: #111827; font-size: 1.25rem;">LD60 Turn Update — {{locationInfo}}</h2>
+  
+  <div style="background: {{#if commandExecuted}}#f3f4f6{{else}}#fef2f2{{/if}}; border-left: 4px solid {{#if commandExecuted}}#3b82f6{{else}}#ef4444{{/if}}; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.25rem;">
+    <div style="font-size: 0.85rem; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Status</div>
+    <div style="font-size: 1rem; font-weight: 500; color: #1f2937; margin-top: 0.25rem;">
+      {{#if commandExecuted}}Command executed: <code>{{command}}</code>{{else}}Could not execute: <code>{{command}}</code>{{/if}}
+    </div>
+    <div style="font-size: 0.85rem; color: #6b7280; margin-top: 0.35rem;">{{rulesNote}}</div>
+  </div>
+
+  <div style="text-align: center; margin: 1.5rem 0;">
+    <img src="{{imageSrc}}" alt="Game Board (2-Frame GIF)" style="image-rendering: pixelated; width: 288px; height: 288px; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: inline-block;" />
+  </div>
+
+  <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 1rem; font-size: 0.9rem; color: #4b5563; margin-top: 1rem;">
+    <div>{{#if inDungeon}}{{#if enemiesPresent}}Reply with movement (e.g. <code>u 2</code>, <code>left</code>), <code>wait</code>, or <code>hub</code> to exit.{{else}}Level cleared! Reply with <code>next</code> for next challenge, or <code>hub</code> to return.{{/if}}{{else}}Move freely (e.g. <code>u</code>, <code>left 3</code>), or enter the dungeon with <code>dungeon</code>.{{/if}}</div>
+  </div>
+</div>
