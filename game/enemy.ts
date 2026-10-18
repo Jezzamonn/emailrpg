@@ -1,4 +1,9 @@
-import type { Point, EntityState, LevelState } from "./types.ts";
+import {
+  type Point,
+  type EntityState,
+  type LevelState,
+  entityGroupOf,
+} from "./types.ts";
 
 export const ENEMY_MOVE_VECTORS = {
   diag: [
@@ -54,10 +59,10 @@ export function stepLevelEnemies(
 
   for (let i = 0; i < updatedEntities.length; i++) {
     const entity = updatedEntities[i];
-    if (entity.type !== "enemy") continue;
+    if (entityGroupOf(entity.type) !== "enemy") continue;
 
     // Check slow enemy cooldown
-    if (entity.enemyKind === "slow") {
+    if (entity.type === "slow") {
       if (entity.cooldown && entity.cooldown > 0) {
         entity.cooldown--;
         continue;
@@ -82,8 +87,8 @@ export function stepLevelEnemies(
     if (!closestPlayer) continue;
 
     const moveVectors =
-      entity.enemyKind && entity.enemyKind in ENEMY_MOVE_VECTORS
-        ? ENEMY_MOVE_VECTORS[entity.enemyKind]
+      entity.type in ENEMY_MOVE_VECTORS
+        ? ENEMY_MOVE_VECTORS[entity.type as keyof typeof ENEMY_MOVE_VECTORS]
         : ENEMY_MOVE_VECTORS.ortho;
 
     let bestNewP: Point | null = null;
@@ -103,13 +108,13 @@ export function stepLevelEnemies(
         continue;
       }
 
-      // Check collision: enemies cannot walk on other enemies or obstacles
+      // Check collision: enemies cannot walk on anything that isn't a player
       const obstacle = updatedEntities.find(
         (other) =>
           other !== entity &&
           other.p.x === newP.x &&
           other.p.y === newP.y &&
-          (other.type === "enemy" || other.type === "obstacle")
+          entityGroupOf(other.type) !== "player"
       );
       if (obstacle) continue;
 
@@ -134,8 +139,8 @@ export function stepLevelEnemies(
       // Check if enemy moved onto any player's position
       for (const p of updatedEntities) {
         if (p.type === "player" && p.p.x === bestNewP.x && p.p.y === bestNewP.y) {
-          if (onPlayerKilled) {
-            onPlayerKilled(p.id);
+          if (onPlayerKilled && p.playerId) {
+            onPlayerKilled(p.playerId);
           }
         }
       }

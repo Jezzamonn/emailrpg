@@ -10,6 +10,7 @@ export interface IntroTemplateContext {
 
 export interface TurnTemplateContext {
   imageSrc: string;
+  messages: string[];
 }
 
 export const welcomeTemplate = Handlebars.compile(welcomeTemplateSource);

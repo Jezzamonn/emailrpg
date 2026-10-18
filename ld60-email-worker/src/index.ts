@@ -1,6 +1,6 @@
 import { EmailMessage } from 'cloudflare:email';
 import { createMimeMessage } from 'mimetext';
-import { Game } from '../../game/game.ts';
+import { createGame } from '../../game/game.ts';
 import { handleIncomingEmail } from '../../game/email/email.ts';
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -12,19 +12,21 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 // In-memory hub world for dev; will be persisted with Cloudflare Durable Objects
-const game = new Game();
+let game = createGame();
 
 export default {
 	async email(message: ForwardableEmailMessage, env: Record<string, any>, ctx: ExecutionContext): Promise<void> {
 		const subject = message.headers.get('subject') || '';
 		const messageId = message.headers.get('Message-ID');
 
-		const emailContent = handleIncomingEmail(game, {
+		const result = handleIncomingEmail(game, {
 			from: message.from,
 			subject,
 			body: subject,
 			imageSrc: 'cid:game_view',
 		});
+		game = result.game;
+		const emailContent = result.response;
 
 		const reply = createMimeMessage();
 		if (messageId) {

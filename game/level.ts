@@ -114,18 +114,21 @@ export function renderEntity(
 //   return output;
 // }
 
+export interface LevelRenderOptions {
+  showCoordinates?: boolean;
+  coordinateSides?: "all" | "bottom-left";
+  fontColor?: number;
+  borderColor?: number;
+}
+
 export function renderLevel(
   surface: Surface,
   level: LevelState,
   tileSize: number = 16,
   frame: number = 0,
-  forPlayerArg?: string,
+  options: LevelRenderOptions = {},
+  forPlayer?: string,
 ): void {
-  const options: LevelRenderOptions =
-    typeof optionsOrPlayer === "string"
-      ? { forPlayer: optionsOrPlayer }
-      : (optionsOrPlayer as LevelRenderOptions);
-  const forPlayer = forPlayerArg ?? options.forPlayer;
 
   const showCoordinates =
     options.showCoordinates ??
@@ -182,13 +185,12 @@ export function renderLevel(
       if (entitiesOnTile.length === 0) continue;
 
       let picked: EntityState;
-      if (
-        forPlayer &&
-        entitiesOnTile.some((e) => e.id === forPlayer || e.char === forPlayer)
-      ) {
-        picked = entitiesOnTile.find(
-          (e) => e.id === forPlayer || e.char === forPlayer,
-        )!;
+      const forPlayerEntity =
+        forPlayer != null
+          ? entitiesOnTile.find((e) => e.playerId === forPlayer)
+          : undefined;
+      if (forPlayerEntity) {
+        picked = forPlayerEntity;
       } else {
         picked =
           entitiesOnTile.find((e) => e.type === "player") ?? entitiesOnTile[0];
@@ -237,84 +239,5 @@ export function renderLevel(
         font.drawText(surface, colLetter, colX, 0, fontColor);
       }
     }
-  }
-}
-
-// Backward-compatible Level class wrapper
-export class Level implements LevelState {
-  public width: number;
-  public height: number;
-  public name: string;
-  public id?: number;
-  public playerStart?: Point;
-  public entities: EntityState[] = [];
-
-  constructor(
-    width: number,
-    height: number,
-    name: string = "Level",
-    id?: number,
-    playerStart?: Point,
-  ) {
-    this.width = width;
-    this.height = height;
-    this.name = name;
-    this.id = id;
-    this.playerStart = playerStart ? { ...playerStart } : undefined;
-  }
-
-  hasEnemies(): boolean {
-    return levelHasEnemies(this);
-  }
-
-  inBound(p: Point): boolean {
-    return levelInBound(this, p);
-  }
-
-  entitiesAt(p: Point): EntityState[] {
-    return levelEntitiesAt(this, p);
-  }
-
-  entityAt(p: Point): EntityState | undefined {
-    return this.entities.find((e) => e.p.x === p.x && e.p.y === p.y);
-  }
-
-  addEntity(typeOrConfig: any, x: number, y: number): void {
-    const char =
-      typeof typeOrConfig === "function"
-        ? new typeOrConfig(this).char
-        : (typeOrConfig.char ?? "Ⓜ️");
-    const type =
-      typeof typeOrConfig === "function"
-        ? new typeOrConfig(this).type
-        : (typeOrConfig.type ?? "obstacle");
-    this.entities.push({
-      id: `entity-${this.entities.length}`,
-      type,
-      char,
-      p: { x, y },
-    });
-  }
-
-  renderText(forPlayer?: any): string {
-    const key =
-      typeof forPlayer === "string"
-        ? forPlayer
-        : (forPlayer?.email ?? forPlayer?.char);
-    return renderLevelText(this, key);
-  }
-
-  render(
-    surface: Surface,
-    tileSize: number = 16,
-    frame: number = 0,
-    optionsOrPlayer: LevelRenderOptions | any = {},
-    forPlayerArg?: any,
-  ): void {
-    const key =
-      typeof forPlayerArg === "string"
-        ? forPlayerArg
-        : (forPlayerArg?.email ?? forPlayerArg?.char);
-    renderLevel(surface, this, tileSize, frame, optionsOrPlayer, key);
   }
 }

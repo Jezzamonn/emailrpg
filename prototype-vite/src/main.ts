@@ -1,8 +1,8 @@
 import "./style.css";
-import { Game } from "@game/game.ts";
+import { createGame } from "@game/game.ts";
 import { handleIncomingEmail, type EmailResponse } from "@game/email/email.ts";
 
-const game = new Game();
+let game = createGame();
 
 // DOM elements - Session Bar
 const startEmailForm = document.querySelector<HTMLFormElement>("#start-email-form")!;
@@ -65,29 +65,29 @@ function sendEmailForSession(email: string, bodyText: string) {
   }
 
   // Generate email response via shared handler
-  const initialResp = handleIncomingEmail(game, {
+  const initial = handleIncomingEmail(game, {
     from: normEmail,
     body: bodyText,
   });
 
-  let finalResp: EmailResponse;
-  if (initialResp.gifBytes) {
+  // The game state is immutable, so we can re-run the same email with the GIF's blob URL as the image source.
+  let final = initial;
+  if (initial.response.gifBytes) {
     if (session.lastGifUrl) {
       URL.revokeObjectURL(session.lastGifUrl);
     }
-    const blob = new Blob([initialResp.gifBytes.buffer as ArrayBuffer], { type: "image/gif" });
+    const blob = new Blob([initial.response.gifBytes.buffer as ArrayBuffer], { type: "image/gif" });
     session.lastGifUrl = URL.createObjectURL(blob);
 
-    finalResp = handleIncomingEmail(game, {
+    final = handleIncomingEmail(game, {
       from: normEmail,
       body: bodyText,
       imageSrc: session.lastGifUrl,
     });
-  } else {
-    finalResp = initialResp;
   }
 
-  session.lastResponse = finalResp;
+  game = final.game;
+  session.lastResponse = final.response;
   activeEmail = normEmail;
   renderUI();
 }
@@ -140,11 +140,11 @@ function renderUI() {
   textBodyPre.textContent = resp.text;
 
   // Configure composer based on user's onboarding phase
-  if (resp.phase === "welcome") {
-    replyInput.placeholder = "Choose player look (e.g. 'King', 'Queen')...";
+  if (game.players[activeEmail]?.state === "awaiting_customization") {
+    replyInput.placeholder = "Describe your look (e.g. 'ponytail, blonde hair, blue clothes')...";
     replySubmitBtn.textContent = "Send Customization";
   } else {
-    replyInput.placeholder = "Enter command (e.g. u, d 2, left 3, wait, dungeon, hub)...";
+    replyInput.placeholder = "Enter command (e.g. up, down 2, left 3, wait)...";
     replySubmitBtn.textContent = "Send Command";
   }
 
@@ -157,7 +157,7 @@ startEmailForm.addEventListener("submit", (e) => {
   const email = startEmailInput.value.trim();
   if (!email) return;
 
-  const user = game.getUser(email);
+  const user = game.players[email.toLowerCase().trim()];
   if (!user) {
     // New user -> send initial email to trigger welcome response
     sendEmailForSession(email, "");
