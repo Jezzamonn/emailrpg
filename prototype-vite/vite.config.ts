@@ -4,9 +4,15 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   plugins: [{
     name: "hbs",
-    transform(code, id) {
-      if (id.endsWith(".hbs")) {
-        return { code: "export default " + JSON.stringify(code) + ";", map: null };
+    enforce: "pre",
+    async load(id) {
+      if (id.endsWith(".hbs") || (id.endsWith(".html") && !id.endsWith("index.html"))) {
+        const fs = await import("node:fs/promises");
+        const code = await fs.readFile(id, "utf-8");
+        return {
+          code: "export default " + JSON.stringify(code) + ";",
+          moduleType: "js",
+        };
       }
     }
   }],

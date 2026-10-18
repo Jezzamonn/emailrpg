@@ -1,292 +1,395 @@
-import { Level } from "./level.ts";
-import { Player } from "./entity/player.ts";
-import { type Action, parseActions } from "./action.ts";
-import type { Point } from "./lib/common.ts";
-import {
-  createPregeneratedDungeon,
-  PREGENERATED_DUNGEONS,
-} from "./dungeon.ts";
+import { createLevel, levelEntitiesAt, levelInBound } from "./level.ts";
+import { type LevelState, type PlayerState, type Point } from "./types.ts";
 
-export type UserState = "awaiting_customization" | "active";
-export type UserLocation = "hub" | "dungeon";
+export * from "./types.ts";
 
-export interface User {
-  email: string;
-  state: UserState;
-  player?: Player;
-  location: UserLocation;
-  dungeonLevelIndex: number;
-  dungeonLevel?: Level;
+export interface GameState {
+  hubLevel: LevelState;
+  // Map of player email to their state
+  players: Record<string, PlayerState>;
 }
 
-export class Game {
-  public hubLevel: Level;
-  public users: Map<string, User> = new Map();
+export function createGame(): GameState {
+  return {
+    hubLevel: createHubLevel(),
+    players: {},
+  };
+}
 
-  constructor() {
-    this.hubLevel = makeHubLevel();
+function createHubLevel(): LevelState {
+  return createLevel(11, 11);
+}
+
+export interface ActionResponse {
+  game: GameState;
+  // Template for the response.
+  template: string;
+  // TODO: This should include some messages somehow? Or idk something to pass up to the email sending part.
+}
+
+export function doPlayerAction(
+  game: GameState,
+  address: string,
+  emailContent: string,
+): ActionResponse {
+  const existingPlayer = game.players[address];
+  // If no player with the email: Add a new player!
+  if (existingPlayer == null) {
+    const newState = addNewPlayer(game, address);
+    return { game: newState, template: "newplayer" };
   }
 
-  get currentLevel(): Level {
-    for (const user of this.users.values()) {
-      if (user.location === "dungeon" && user.dungeonLevel) {
-        return user.dungeonLevel;
-      }
-    }
-    return this.hubLevel;
-  }
+  // Otherwise: Take the next action for that player.
+  // TODO: Doing that.
+  return { game, template: "generic" };
+}
 
-  set currentLevel(level: Level) {
-    this.hubLevel = level;
-  }
+function addNewPlayer(game: GameState, address: string): GameState {
+  return game;
+}
 
-  getUser(email: string): User | undefined {
-    return this.users.get(email.toLowerCase().trim());
-  }
+function findUnoccupiedHubPosition(hubLevel: LevelState): Point {
+  const midX = Math.floor(hubLevel.width / 2);
+  const midY = Math.floor(hubLevel.height / 2);
 
-  getUserForPlayer(player: Player): User | undefined {
-    if (player.email) {
-      return this.getUser(player.email);
-    }
-    for (const user of this.users.values()) {
-      if (user.player === player) return user;
-    }
-    return undefined;
-  }
-
-  getLevelForUser(email: string): Level {
-    const user = this.getUser(email);
-    if (user?.location === "dungeon" && user.dungeonLevel) {
-      return user.dungeonLevel;
-    }
-    return user?.player?.level ?? this.hubLevel;
-  }
-
-  getLevelForPlayer(player: Player): Level {
-    return player.level ?? this.hubLevel;
-  }
-
-  getAllPlayers(): Player[] {
-    const players: Player[] = [];
-    for (const entity of this.hubLevel.entities) {
-      if (entity instanceof Player && !players.includes(entity)) {
-        players.push(entity);
-      }
-    }
-    for (const user of this.users.values()) {
-      if (user.player && !players.includes(user.player)) {
-        players.push(user.player);
-      }
-    }
-    return players;
-  }
-
-  registerUser(email: string): User {
-    const key = email.toLowerCase().trim();
-    let user = this.users.get(key);
-    if (!user) {
-      user = {
-        email: key,
-        state: "awaiting_customization",
-        location: "hub",
-        dungeonLevelIndex: 0,
-      };
-      this.users.set(key, user);
-    }
-    return user;
-  }
-
-  findHubPosition(): Point {
-    const midX = Math.floor(this.hubLevel.width / 2);
-    const midY = Math.floor(this.hubLevel.height / 2);
-    return { x: midX, y: midY };
-  }
-
-  findUnoccupiedPosition(): Point {
-    const midX = Math.floor(this.hubLevel.width / 2);
-    const midY = Math.floor(this.hubLevel.height / 2);
-
-    for (let r = 0; r <= Math.max(this.hubLevel.width, this.hubLevel.height); r++) {
-      for (let dy = -r; dy <= r; dy++) {
-        for (let dx = -r; dx <= r; dx++) {
-          const x = midX + dx;
-          const y = midY + dy;
-          if (this.hubLevel.inBound({ x, y }) && !this.hubLevel.entityAt({ x, y })) {
-            return { x, y };
-          }
+  for (let r = 0; r <= Math.max(hubLevel.width, hubLevel.height); r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        const x = midX + dx;
+        const y = midY + dy;
+        if (
+          levelInBound(hubLevel, { x, y }) &&
+          levelEntitiesAt(hubLevel, { x, y }).length === 0
+        ) {
+          return { x, y };
         }
       }
     }
-    return { x: midX, y: midY };
   }
-
-  createPlayerForUser(email: string, _customizationText: string = ""): Player {
-    const user = this.registerUser(email);
-    const pos = this.findUnoccupiedPosition();
-
-    const existingPlayers = this.getAllPlayers();
-    const chars = ["🤴", "👸", "🧙", "🧝", "🧑‍🚀", "🦸", "🥷", "🧚"];
-    const index = existingPlayers.length % chars.length;
-
-    const player = new Player(this.hubLevel);
-    player.email = user.email;
-    player.char = chars[index];
-    player.p = { x: pos.x, y: pos.y };
-    player.spawnPoint = { x: pos.x, y: pos.y };
-
-    this.hubLevel.entities.push(player);
-    user.player = player;
-    user.location = "hub";
-    user.state = "active";
-    return player;
-  }
-
-  enterDungeon(user: User): Level {
-    if (!user.player) {
-      throw new Error("User has no player to enter dungeon");
-    }
-
-    if (!user.dungeonLevel) {
-      user.dungeonLevel = createPregeneratedDungeon(user.dungeonLevelIndex);
-    }
-
-    const startPos = user.dungeonLevel.playerStart ?? {
-      x: Math.floor(user.dungeonLevel.width / 2),
-      y: user.dungeonLevel.height - 1,
-    };
-    user.player.transitionToLevel(user.dungeonLevel, startPos);
-    user.location = "dungeon";
-    return user.dungeonLevel;
-  }
-
-  leaveDungeon(user: User): Level {
-    if (!user.player) {
-      throw new Error("User has no player to leave dungeon");
-    }
-
-    const pos = this.findHubPosition();
-    user.player.transitionToLevel(this.hubLevel, pos);
-    user.location = "hub";
-    return this.hubLevel;
-  }
-
-  nextDungeonLevel(user: User): Level | undefined {
-    if (!user.player) return undefined;
-
-    user.dungeonLevelIndex = (user.dungeonLevelIndex + 1) % PREGENERATED_DUNGEONS.length;
-    user.dungeonLevel = createPregeneratedDungeon(user.dungeonLevelIndex);
-
-    const startPos = user.dungeonLevel.playerStart ?? {
-      x: Math.floor(user.dungeonLevel.width / 2),
-      y: user.dungeonLevel.height - 1,
-    };
-    user.player.transitionToLevel(user.dungeonLevel, startPos);
-    user.location = "dungeon";
-    return user.dungeonLevel;
-  }
-
-  processCommand(command: string, forEmail?: string): boolean {
-    let actions: Action[];
-    try {
-      actions = parseActions(command);
-    } catch (error) {
-      console.error(`${error}`);
-      return false;
-    }
-
-    if (actions.length === 0) return false;
-    const action = actions[0];
-
-    // Find the right player
-    let player: Player | undefined;
-
-    if (forEmail) {
-      const user = this.getUser(forEmail);
-      player = user?.player;
-    }
-
-    // Fallback: if no target specified and only 1 player exists, use it
-    if (!player) {
-      const allPlayers = this.getAllPlayers();
-      if (allPlayers.length === 1) {
-        player = allPlayers[0];
-      }
-    }
-
-    // Auto-create player for CLI prototype testing if none exists
-    if (!player && !forEmail && this.getAllPlayers().length === 0) {
-      player = this.createPlayerForUser("player@example.com");
-    }
-
-    if (!player) {
-      console.error(`Couldn't find target player for command: ${command}`);
-      return false;
-    }
-
-    const user = this.getUserForPlayer(player);
-
-    if (action.type === "dungeon") {
-      if (user) {
-        this.enterDungeon(user);
-        return true;
-      }
-      return false;
-    }
-
-    if (action.type === "hub") {
-      if (user) {
-        this.leaveDungeon(user);
-        return true;
-      }
-      return false;
-    }
-
-    if (action.type === "next") {
-      if (user && user.dungeonLevel) {
-        if (user.dungeonLevel.hasEnemies()) {
-          console.error("Cannot proceed to next dungeon level while enemies remain.");
-          return false;
-        }
-        this.nextDungeonLevel(user);
-        return true;
-      }
-      return false;
-    }
-
-    if (action.type === "wait") {
-      player.level.next();
-      return true;
-    }
-
-    // Movement command:
-    // If there are enemies in the level, player movement is limited to 2 squares in each direction.
-    // If there are none, players may move freely.
-    if (player.level.hasEnemies() && action.dist > 2) {
-      console.error(
-        `Movement limited to 2 squares when enemies are present (requested ${action.dist}).`
-      );
-      return false;
-    }
-
-    try {
-      const moved = player.applyAction(action);
-      if (!moved) {
-        return false;
-      }
-    } catch (error) {
-      console.error(`${error}`);
-      return false;
-    }
-
-    // Advance turn for enemies in player's current level
-    player.level.next();
-    return true;
-  }
+  return { x: midX, y: midY };
 }
 
-function makeHubLevel(): Level {
-  // Empty 11 x 11 hub world with no enemies
-  const hub = new Level(11, 11);
-  hub.name = "Hub World";
-  return hub;
-}
+// export function registerUser(
+//   game: GameState,
+//   email: string,
+// ): { game: GameState; player: PlayerEntry } {
+//   const norm = email.toLowerCase().trim();
+//   const existing = getUser(game, norm);
+//   if (existing) {
+//     return { game, player: existing };
+//   }
+
+//   const hubPos = findUnoccupiedHubPosition(game.hubLevel);
+//   const playerState: PlayerState = {
+//     email: norm,
+//     state: "awaiting_customization",
+//     p: { ...hubPos },
+//     spawnPoint: { ...hubPos },
+//     dungeonLevelIndex: 0,
+//   };
+
+//   const newEntry = makePlayerEntry(playerState);
+//   const newGame: GameState = {
+//     ...game,
+//     players: [...game.players, newEntry],
+//   };
+
+//   return { game: newGame, player: newEntry };
+// }
+
+// export function processCommand(
+//   game: GameState,
+//   command: string,
+//   forEmail?: string,
+// ): { game: GameState; success: boolean } {
+//   let actions: Action[];
+//   try {
+//     actions = parseActions(command);
+//   } catch (err) {
+//     console.error(`${err}`);
+//     return { game, success: false };
+//   }
+
+//   if (actions.length === 0) {
+//     return { game, success: false };
+//   }
+
+//   const action = actions[0];
+
+//   // Find player
+//   let player = forEmail ? getUser(game, forEmail) : undefined;
+
+//   if (!player && action.target) {
+//     const target = action.target.toLowerCase();
+//     player = game.players.find(
+//       (p) =>
+//         p.playerState.char.toLowerCase() === target ||
+//         p.playerState.email.toLowerCase() === target,
+//     );
+//   }
+
+//   if (!player && game.players.length === 1) {
+//     player = game.players[0];
+//   }
+
+//   // Auto-create player for CLI prototype testing if none exists
+//   let workingGame = game;
+//   if (!player && !forEmail && game.players.length === 0) {
+//     const created = createPlayerForUser(game, "player@example.com");
+//     workingGame = created.game;
+//     player = created.player;
+//   }
+
+//   if (!player) {
+//     console.error(`Couldn't find target player for command: ${command}`);
+//     return { game: workingGame, success: false };
+//   }
+
+//   const email = player.playerState.email;
+
+//   // Handle action types
+//   if (action.type === "dungeon") {
+//     return { game: enterDungeon(workingGame, email), success: true };
+//   }
+
+//   if (action.type === "hub") {
+//     return { game: leaveDungeon(workingGame, email), success: true };
+//   }
+
+//   if (action.type === "next") {
+//     if (player.playerState.location === "dungeon" && player.playerLevel) {
+//       if (levelHasEnemies(player.playerLevel)) {
+//         console.error(
+//           "Cannot proceed to next dungeon level while enemies remain.",
+//         );
+//         return { game: workingGame, success: false };
+//       }
+//       return { game: nextDungeonLevel(workingGame, email), success: true };
+//     }
+//     return { game: workingGame, success: false };
+//   }
+
+//   const isDungeon = player.playerState.location === "dungeon";
+//   let activeLevel: LevelState = isDungeon
+//     ? (player.playerLevel ??
+//       createPregeneratedDungeon(player.playerState.dungeonLevelIndex))
+//     : workingGame.hubLevel;
+
+//   if (action.type === "wait") {
+//     // Player does not move, enemies take turn
+//     if (isDungeon) {
+//       const steppedLevel = stepLevelEnemies(activeLevel, (killedPlayerId) => {
+//         // Player was killed -> respawn at spawnPoint
+//         console.log(`Player ${killedPlayerId} killed in dungeon, respawning.`);
+//       });
+//       const updatedPlayers = workingGame.players.map((p) =>
+//         p.playerState.email === email
+//           ? makePlayerEntry(p.playerState, steppedLevel)
+//           : p,
+//       );
+//       return {
+//         game: { ...workingGame, players: updatedPlayers },
+//         success: true,
+//       };
+//     }
+//     return { game: workingGame, success: true };
+//   }
+
+//   // Movement command
+//   if (levelHasEnemies(activeLevel) && action.dist > 2) {
+//     console.error(
+//       `Movement limited to 2 squares when enemies are present (requested ${action.dist}).`,
+//     );
+//     return { game: workingGame, success: false };
+//   }
+
+//   if (action.dir == null) {
+//     return { game: workingGame, success: false };
+//   }
+
+//   const dirVector = Dirs.toPoint(action.dir);
+//   const newP = Points.add(
+//     player.playerState.p,
+//     Points.scale(dirVector, action.dist),
+//   );
+
+//   if (!levelInBound(activeLevel, newP)) {
+//     console.log("New position out of bounds:", newP);
+//     return { game: workingGame, success: false };
+//   }
+
+//   // Check collisions at target position
+//   const entitiesAtTarget = levelEntitiesAt(activeLevel, newP);
+//   let killedEnemy = false;
+
+//   for (const entity of entitiesAtTarget) {
+//     if (entity.type === "enemy") {
+//       killedEnemy = true;
+//     } else if (entity.type === "player") {
+//       // Overlapping with another player is allowed
+//       continue;
+//     } else {
+//       // Obstacle or blocked
+//       console.log("Cannot move to position, blocked by obstacle:", entity);
+//       return { game: workingGame, success: false };
+//     }
+//   }
+
+//   // Update player position and remove killed enemies
+//   const filteredEntities = activeLevel.entities.filter(
+//     (e) =>
+//       !(
+//         killedEnemy &&
+//         e.type === "enemy" &&
+//         e.p.x === newP.x &&
+//         e.p.y === newP.y
+//       ),
+//   );
+
+//   const updatedEntities = filteredEntities.map((e) =>
+//     e.id === email ? { ...e, p: { ...newP } } : e,
+//   );
+
+//   const updatedActiveLevel: LevelState = {
+//     ...activeLevel,
+//     entities: updatedEntities,
+//   };
+
+//   // Step enemy AI if in dungeon
+//   let finalLevel = updatedActiveLevel;
+//   let playerKilled = false;
+
+//   if (isDungeon) {
+//     finalLevel = stepLevelEnemies(updatedActiveLevel, (killedId) => {
+//       if (killedId === email) {
+//         playerKilled = true;
+//       }
+//     });
+//   }
+
+//   const finalPlayerPos = playerKilled
+//     ? { ...player.playerState.spawnPoint }
+//     : { ...newP };
+
+//   if (playerKilled) {
+//     finalLevel = {
+//       ...finalLevel,
+//       entities: finalLevel.entities.map((e) =>
+//         e.id === email ? { ...e, p: { ...finalPlayerPos } } : e,
+//       ),
+//     };
+//   }
+
+//   const updatedPlayerState: PlayerState = {
+//     ...player.playerState,
+//     p: finalPlayerPos,
+//   };
+
+//   if (isDungeon) {
+//     const updatedPlayers = workingGame.players.map((p) =>
+//       p.playerState.email === email
+//         ? makePlayerEntry(updatedPlayerState, finalLevel)
+//         : p,
+//     );
+//     return {
+//       game: { ...workingGame, players: updatedPlayers },
+//       success: true,
+//     };
+//   } else {
+//     const updatedPlayers = workingGame.players.map((p) =>
+//       p.playerState.email === email
+//         ? makePlayerEntry(updatedPlayerState, p.playerLevel)
+//         : p,
+//     );
+//     return {
+//       game: {
+//         ...workingGame,
+//         hubLevel: finalLevel,
+//         players: updatedPlayers,
+//       },
+//       success: true,
+//     };
+//   }
+// }
+
+// // Stateful Game class wrapper for callers wanting class API
+// export class Game {
+//   public state: GameState;
+
+//   constructor(initialState?: GameState) {
+//     this.state = initialState ?? createGame();
+//   }
+
+//   get hubLevel(): LevelState {
+//     return this.state.hubLevel;
+//   }
+
+//   get players(): PlayerEntry[] {
+//     return this.state.players;
+//   }
+
+//   get currentLevel(): LevelState {
+//     for (const player of this.state.players) {
+//       if (player.playerState.location === "dungeon" && player.playerLevel) {
+//         return player.playerLevel;
+//       }
+//     }
+//     return this.state.hubLevel;
+//   }
+
+//   set currentLevel(level: LevelState) {
+//     this.state.hubLevel = level;
+//   }
+
+//   getUser(email: string): PlayerEntry | undefined {
+//     return getUser(this.state, email);
+//   }
+
+//   registerUser(email: string): PlayerEntry {
+//     const res = registerUser(this.state, email);
+//     this.state = res.game;
+//     return res.player;
+//   }
+
+//   createPlayerForUser(
+//     email: string,
+//     customizationText: string = "",
+//   ): PlayerEntry {
+//     const res = createPlayerForUser(this.state, email, customizationText);
+//     this.state = res.game;
+//     return res.player;
+//   }
+
+//   enterDungeon(email: string): LevelState {
+//     this.state = enterDungeon(this.state, email);
+//     return this.getLevelForUser(email);
+//   }
+
+//   leaveDungeon(email: string): LevelState {
+//     this.state = leaveDungeon(this.state, email);
+//     return this.state.hubLevel;
+//   }
+
+//   nextDungeonLevel(email: string): LevelState | undefined {
+//     this.state = nextDungeonLevel(this.state, email);
+//     return this.getLevelForUser(email);
+//   }
+
+//   processCommand(command: string, forEmail?: string): boolean {
+//     const res = processCommand(this.state, command, forEmail);
+//     this.state = res.game;
+//     return res.success;
+//   }
+
+//   getLevelForUser(email: string): LevelState {
+//     return getLevelForUser(this.state, email);
+//   }
+
+//   getAllPlayers(): PlayerEntry[] {
+//     return this.state.players;
+//   }
+
+//   toJSON(): GameState {
+//     return this.state;
+//   }
+// }

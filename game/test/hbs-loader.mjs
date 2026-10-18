@@ -1,7 +1,7 @@
 import fs from "node:fs";
 
 export async function load(url, context, nextLoad) {
-  if (url.endsWith(".hbs")) {
+  if (url.endsWith(".hbs") || url.endsWith(".html")) {
     const content = fs.readFileSync(new URL(url), "utf8");
     return {
       format: "module",

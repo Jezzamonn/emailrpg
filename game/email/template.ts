@@ -1,42 +1,23 @@
 import Handlebars from "handlebars";
 import { convert } from "html-to-text";
-import welcomeTemplateSource from "./welcome.html.hbs";
-import introTemplateSource from "./intro.html.hbs";
-import turnTemplateSource from "./turn.html.hbs";
-
-export interface WelcomeTemplateContext {
-  [key: string]: unknown;
-}
-
-export interface IntroPlayerContext {
-  char: string;
-  displayX: number;
-  displayY: number;
-}
+import welcomeTemplateSource from "./welcome.html";
+import introTemplateSource from "./intro.html";
+import turnTemplateSource from "./turn.html";
 
 export interface IntroTemplateContext {
-  player: IntroPlayerContext;
   imageSrc: string;
 }
 
 export interface TurnTemplateContext {
-  locationInfo: string;
-  command: string;
-  commandExecuted: boolean;
-  rulesNote: string;
   imageSrc: string;
-  inDungeon: boolean;
-  enemiesPresent: boolean;
 }
 
 export const welcomeTemplate = Handlebars.compile(welcomeTemplateSource);
 export const introTemplate = Handlebars.compile(introTemplateSource);
 export const turnTemplate = Handlebars.compile(turnTemplateSource);
 
-export function renderWelcomeEmail(
-  context: WelcomeTemplateContext = {}
-): string {
-  return welcomeTemplate(context).trim();
+export function renderWelcomeEmail(): string {
+  return welcomeTemplate({}).trim();
 }
 
 export function renderIntroEmail(context: IntroTemplateContext): string {
@@ -71,5 +52,3 @@ export function htmlToPlainText(html: string): string {
     ],
   }).trim();
 }
-
-export { Handlebars };

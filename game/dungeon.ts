@@ -1,15 +1,8 @@
-import { Level } from "./level.ts";
-import type { Point } from "./lib/common.ts";
-import {
-  DiagEnemy,
-  OrthoEnemy,
-  KnightEnemy,
-  SlowEnemy,
-} from "./entity/enemy.ts";
-import type { Entity } from "./entity/entity.ts";
+import type { Point, EntityState, LevelState, EnemyKind } from "./types.ts";
 
 export interface DungeonEnemyConfig {
-  type: new (level: Level) => Entity;
+  enemyKind: EnemyKind;
+  char: string;
   pos: Point;
 }
 
@@ -30,8 +23,8 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
     height: 7,
     playerStart: { x: 3, y: 5 },
     enemies: [
-      { type: OrthoEnemy, pos: { x: 2, y: 1 } },
-      { type: OrthoEnemy, pos: { x: 4, y: 1 } },
+      { enemyKind: "ortho", char: "🐀", pos: { x: 2, y: 1 } },
+      { enemyKind: "ortho", char: "🐀", pos: { x: 4, y: 1 } },
     ],
   },
   {
@@ -41,9 +34,9 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
     height: 7,
     playerStart: { x: 3, y: 5 },
     enemies: [
-      { type: DiagEnemy, pos: { x: 1, y: 1 } },
-      { type: DiagEnemy, pos: { x: 5, y: 1 } },
-      { type: SlowEnemy, pos: { x: 3, y: 2 } },
+      { enemyKind: "diag", char: "🦇", pos: { x: 1, y: 1 } },
+      { enemyKind: "diag", char: "🦇", pos: { x: 5, y: 1 } },
+      { enemyKind: "slow", char: "🐌", pos: { x: 3, y: 2 } },
     ],
   },
   {
@@ -53,9 +46,9 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
     height: 8,
     playerStart: { x: 3, y: 6 },
     enemies: [
-      { type: KnightEnemy, pos: { x: 2, y: 2 } },
-      { type: KnightEnemy, pos: { x: 5, y: 2 } },
-      { type: OrthoEnemy, pos: { x: 3, y: 1 } },
+      { enemyKind: "knight", char: "🐺", pos: { x: 2, y: 2 } },
+      { enemyKind: "knight", char: "🐺", pos: { x: 5, y: 2 } },
+      { enemyKind: "ortho", char: "🐀", pos: { x: 3, y: 1 } },
     ],
   },
   {
@@ -65,28 +58,33 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
     height: 8,
     playerStart: { x: 3, y: 6 },
     enemies: [
-      { type: KnightEnemy, pos: { x: 1, y: 1 } },
-      { type: DiagEnemy, pos: { x: 6, y: 1 } },
-      { type: OrthoEnemy, pos: { x: 1, y: 3 } },
-      { type: SlowEnemy, pos: { x: 6, y: 3 } },
+      { enemyKind: "knight", char: "🐺", pos: { x: 1, y: 1 } },
+      { enemyKind: "diag", char: "🦇", pos: { x: 6, y: 1 } },
+      { enemyKind: "ortho", char: "🐀", pos: { x: 1, y: 3 } },
+      { enemyKind: "slow", char: "🐌", pos: { x: 6, y: 3 } },
     ],
   },
 ];
 
-export function createPregeneratedDungeon(index: number = 0): Level {
+export function createPregeneratedDungeon(index: number = 0): LevelState {
   const safeIndex = Math.abs(index) % PREGENERATED_DUNGEONS.length;
   const def = PREGENERATED_DUNGEONS[safeIndex];
 
-  const level = new Level(def.width, def.height);
-  level.name = def.name;
-  level.dungeonId = def.id;
-  level.playerStart = { ...def.playerStart };
+  const entities: EntityState[] = def.enemies.map((enemyConfig, i) => ({
+    id: `enemy-${def.id}-${i}`,
+    type: "enemy",
+    enemyKind: enemyConfig.enemyKind,
+    char: enemyConfig.char,
+    p: { ...enemyConfig.pos },
+    cooldown: enemyConfig.enemyKind === "slow" ? 0 : undefined,
+  }));
 
-  for (const enemyConfig of def.enemies) {
-    const enemy = new enemyConfig.type(level);
-    enemy.p = { ...enemyConfig.pos };
-    level.entities.push(enemy);
-  }
-
-  return level;
+  return {
+    id: def.id,
+    name: def.name,
+    width: def.width,
+    height: def.height,
+    playerStart: { ...def.playerStart },
+    entities,
+  };
 }

@@ -103,7 +103,6 @@ function renderUI() {
       pill.type = "button";
       pill.className = `user-pill ${email === activeEmail ? "active" : ""}`;
 
-      const user = game.getUser(email);
       pill.textContent = email;
 
       pill.addEventListener("click", () => {

@@ -12,9 +12,8 @@ import {
 describe("Handlebars Email Templating", () => {
   it("renders welcome email template", () => {
     const html = renderWelcomeEmail();
-    assert.match(html, /Welcome to the game!/);
-    assert.match(html, /Choose what your player looks like/);
-    assert.match(html, /Reply to this email with what you'd like your character to look like/);
+    assert.match(html, /WELCOME to/);
+    assert.match(html, /What do you look like/);
   });
 
   it("renders intro email template with player info and game board image", () => {
@@ -27,13 +26,11 @@ describe("Handlebars Email Templating", () => {
       imageSrc: "cid:game_view",
     });
 
-    assert.match(html, /Welcome to the world!/);
-    assert.match(html, /Character Created!/);
-    assert.match(html, /<img src="cid:game_view"/);
-    assert.match(html, /How to play:/);
+    assert.match(html, /OK,, here's the story so far/);
+    assert.match(html, /peaceful beach/);
   });
 
-  it("renders turn update email template with command executed status and escapes HTML", () => {
+  it("renders turn update email template with game board image", () => {
     const html = renderTurnEmail({
       locationInfo: "Shared Hub World",
       command: "u 2",
@@ -44,25 +41,9 @@ describe("Handlebars Email Templating", () => {
       enemiesPresent: false,
     });
 
-    assert.match(html, /LD60 Turn Update — Shared Hub World/);
-    assert.match(html, /Command executed: <code>u 2<\/code>/);
-    assert.match(html, /No enemies present: you may move freely\./);
-    assert.match(html, /Move freely \(e\.g\. <code>u<\/code>, <code>left 3<\/code>\), or enter the dungeon with <code>dungeon<\/code>\./);
-  });
-
-  it("renders turn update email with failure and escapes malicious input", () => {
-    const html = renderTurnEmail({
-      locationInfo: "Dungeon (Level 1)",
-      command: "<script>alert('hack')</script>",
-      commandExecuted: false,
-      rulesNote: "Enemies are present: movement is limited to 2 squares per direction.",
-      imageSrc: "cid:game_view",
-      inDungeon: true,
-      enemiesPresent: true,
-    });
-
-    assert.match(html, /Could not execute: <code>&lt;script&gt;alert\(&#x27;hack&#x27;\)&lt;\/script&gt;<\/code>/);
-    assert.match(html, /Reply with movement \(e\.g\. <code>u 2<\/code>, <code>left<\/code>\), <code>wait<\/code>, or <code>hub<\/code> to exit\./);
+    assert.match(html, /You go ahead and do that thing/);
+    assert.match(html, /<img src="cid:game_view"/);
+    assert.match(html, /Pretty cool right/);
   });
 
   it("htmlToPlainText strips HTML tags, formats lists and images, and decodes entities", () => {
@@ -95,9 +76,8 @@ describe("Handlebars Email Templating", () => {
       body: "Hello",
     });
     assert.equal(res1.phase, "welcome");
-    assert.match(res1.html, /Welcome to the game!/);
-    assert.match(res1.text, /Welcome to the game!/);
-    assert.match(res1.text, /Choose what your player looks like\./);
+    assert.match(res1.html, /WELCOME to/);
+    assert.match(res1.text, /WELCOME to/);
     assert.equal(/<[^>]+>/.test(res1.text), false);
 
     // Phase 2: Intro / Character creation
@@ -106,10 +86,8 @@ describe("Handlebars Email Templating", () => {
       body: "King",
     });
     assert.equal(res2.phase, "intro");
-    assert.match(res2.html, /Character Created!/);
-    assert.match(res2.text, /Character Created!/);
-    assert.match(res2.text, /\[Game Board \(2-Frame GIF\)\]/);
-    assert.match(res2.text, /- u, d, l, r/);
+    assert.match(res2.html, /peaceful beach/);
+    assert.match(res2.text, /peaceful beach/);
     assert.equal(/<[^>]+>/.test(res2.text), false);
 
     // Phase 3: Turn move
@@ -118,9 +96,9 @@ describe("Handlebars Email Templating", () => {
       body: "u 2",
     });
     assert.equal(res3.phase, "turn");
-    assert.match(res3.html, /Command executed: <code>u 2<\/code>/);
-    assert.match(res3.text, /Command executed: u 2/);
-    assert.match(res3.text, /\[Game Board \(2-Frame GIF\)\]/);
+    assert.match(res3.html, /You go ahead and do that thing/);
+    assert.match(res3.text, /You go ahead and do that thing/);
+    assert.match(res3.text, /\[Game Board\]/);
     assert.equal(/<[^>]+>/.test(res3.text), false);
   });
 });
