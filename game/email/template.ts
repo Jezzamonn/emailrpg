@@ -10,7 +10,6 @@ export interface WelcomeTemplateContext {
 
 export interface IntroPlayerContext {
   char: string;
-  letter: string;
   displayX: number;
   displayY: number;
 }

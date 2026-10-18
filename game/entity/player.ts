@@ -6,8 +6,8 @@ import type { Point } from "../lib/common.ts";
 import type { Level } from "../level.ts";
 
 export class Player extends Entity {
+  public char: string = "🤴";
   public email?: string;
-  public letter = "";
   public override type: EntityType = "player";
   public spawnPoint: Point = { x: 0, y: 0 };
 
@@ -30,7 +30,10 @@ export class Player extends Entity {
     if (targetPos) {
       this.p = { x: targetPos.x, y: targetPos.y };
     } else {
-      this.p = { x: Math.floor(newLevel.width / 2), y: Math.floor(newLevel.height / 2) };
+      this.p = {
+        x: Math.floor(newLevel.width / 2),
+        y: Math.floor(newLevel.height / 2),
+      };
     }
     this.spawnPoint = { ...this.p };
 
@@ -42,29 +45,22 @@ export class Player extends Entity {
   move() {
     // I guess player doesn't move here but moves separately?
   }
-}
 
-export class KingPlayer extends Player {
-  public char: string = "🤴";
-  public letter = "K";
-
-  override render(surface: Surface, tileSize: number = 16, frame: number = 0): void {
+  override render(
+    surface: Surface,
+    tileSize: number = 16,
+    frame: number = 0,
+  ): void {
     const yOffset = frame === 1 ? -1 : 0;
     const px = this.p.x * tileSize;
     const py = this.p.y * tileSize + yOffset;
     surface.fillRect(px + 2, py + 2, tileSize - 4, tileSize - 4, Colors.Yellow);
-    surface.strokeRect(px + 1, py + 1, tileSize - 2, tileSize - 2, Colors.White);
-  }
-}
-
-export class QueenPlayer extends Player {
-  public char: string = "👸";
-  public letter = "Q";
-
-  override render(surface: Surface, tileSize: number = 16, frame: number = 0): void {
-    const yOffset = frame === 1 ? -1 : 0;
-    const px = this.p.x * tileSize;
-    const py = this.p.y * tileSize + yOffset;
-    surface.fillRect(px + 2, py + 2, tileSize - 4, tileSize - 4, Colors.Yellow);
+    surface.strokeRect(
+      px + 1,
+      py + 1,
+      tileSize - 2,
+      tileSize - 2,
+      Colors.White,
+    );
   }
 }

@@ -24,7 +24,6 @@ export interface EmailResponse {
   html: string;
   gifBytes?: Uint8Array;
   phase: EmailPhase;
-  playerLetter?: string;
 }
 
 export function handleIncomingEmail(
@@ -73,7 +72,6 @@ export function handleIncomingEmail(
     const html = renderIntroEmail({
       player: {
         char: player.char,
-        letter: player.letter,
         displayX: player.p.x + 1,
         displayY: player.p.y + 1,
       },
@@ -89,7 +87,6 @@ export function handleIncomingEmail(
       html,
       gifBytes,
       phase: "intro",
-      playerLetter: player.letter,
     };
   }
 
@@ -132,6 +129,5 @@ export function handleIncomingEmail(
     html,
     gifBytes,
     phase: "turn",
-    playerLetter: user.player?.letter,
   };
 }

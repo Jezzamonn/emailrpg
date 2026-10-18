@@ -21,7 +21,6 @@ describe("Handlebars Email Templating", () => {
     const html = renderIntroEmail({
       player: {
         char: "@",
-        letter: "A",
         displayX: 5,
         displayY: 6,
       },
@@ -30,7 +29,6 @@ describe("Handlebars Email Templating", () => {
 
     assert.match(html, /Welcome to the world!/);
     assert.match(html, /Character Created!/);
-    assert.match(html, /You have joined the hub world as <strong>@ \[A\]<\/strong> at position \(5, 6\)\./);
     assert.match(html, /<img src="cid:game_view"/);
     assert.match(html, /How to play:/);
   });
@@ -108,9 +106,7 @@ describe("Handlebars Email Templating", () => {
       body: "King",
     });
     assert.equal(res2.phase, "intro");
-    assert.equal(res2.playerLetter, "K");
     assert.match(res2.html, /Character Created!/);
-    assert.match(res2.html, /\[K\]/);
     assert.match(res2.text, /Character Created!/);
     assert.match(res2.text, /\[Game Board \(2-Frame GIF\)\]/);
     assert.match(res2.text, /- u, d, l, r/);

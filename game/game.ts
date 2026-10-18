@@ -125,13 +125,11 @@ export class Game {
     const pos = this.findUnoccupiedPosition();
 
     const existingPlayers = this.getAllPlayers();
-    const letters = ["K", "Q", "A", "B", "C", "D", "E", "F"];
     const chars = ["🤴", "👸", "🧙", "🧝", "🧑‍🚀", "🦸", "🥷", "🧚"];
-    const index = existingPlayers.length % letters.length;
+    const index = existingPlayers.length % chars.length;
 
     const player = new KingPlayer(this.hubLevel);
     player.email = user.email;
-    player.letter = letters[index];
     player.char = chars[index];
     player.p = { x: pos.x, y: pos.y };
     player.spawnPoint = { x: pos.x, y: pos.y };
@@ -202,13 +200,7 @@ export class Game {
     // Find the right player
     let player: Player | undefined;
 
-    if (action.target) {
-      player = this.getAllPlayers().find(
-        (p) => p.letter.toLowerCase() === action.target?.toLowerCase()
-      );
-    }
-
-    if (!player && forEmail) {
+    if (forEmail) {
       const user = this.getUser(forEmail);
       player = user?.player;
     }
