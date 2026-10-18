@@ -116,6 +116,7 @@ function placePlayerInHub(game: GameState, player: PlayerState): void {
     type: "player",
     p: { ...player.p },
     playerId: player.email,
+    appearance: player.appearance,
   });
 }
 

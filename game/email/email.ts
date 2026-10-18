@@ -88,5 +88,5 @@ function renderEmailTemplate(
 
 function renderPlayerView(game: GameState, address: string): Uint8Array {
   const player = game.players[address]!;
-  return renderLevelToGif(getPlayerLevel(game, player), 16, {}, address);
+  return renderLevelToGif(getPlayerLevel(game, player), {}, address);
 }

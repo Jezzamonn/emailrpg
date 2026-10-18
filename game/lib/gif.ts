@@ -50,13 +50,13 @@ export function encodeSurfacesToGif(
 
 import type { LevelState } from "../types.ts";
 import { renderLevel } from "../level.ts";
+import { TILE_SIZE } from "../entity.ts";
 
 /**
  * Helper to render a 2-frame animated GIF for a given Level.
  */
 export function renderLevelToGif(
   level: LevelState,
-  tileSize: number = 16,
   options: GifOptions = {},
   forPlayer: string,
 ): Uint8Array {
@@ -67,21 +67,21 @@ export function renderLevelToGif(
   let height: number;
 
   if (!showCoordinates) {
-    width = level.width * tileSize;
-    height = level.height * tileSize;
+    width = level.width * TILE_SIZE;
+    height = level.height * TILE_SIZE;
   } else if (coordinateSides === "bottom-left") {
-    width = (level.width + 1) * tileSize;
-    height = (level.height + 1) * tileSize;
+    width = (level.width + 1) * TILE_SIZE;
+    height = (level.height + 1) * TILE_SIZE;
   } else {
-    width = (level.width + 2) * tileSize;
-    height = (level.height + 2) * tileSize;
+    width = (level.width + 2) * TILE_SIZE;
+    height = (level.height + 2) * TILE_SIZE;
   }
 
   const frame0 = new Surface(width, height);
   const frame1 = new Surface(width, height);
 
-  renderLevel(frame0, level, tileSize, 0, options, forPlayer);
-  renderLevel(frame1, level, tileSize, 1, options, forPlayer);
+  renderLevel(frame0, level, 0, options, forPlayer);
+  renderLevel(frame1, level, 1, options, forPlayer);
 
   return encodeSurfacesToGif([frame0, frame1], options);
 }

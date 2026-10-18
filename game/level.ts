@@ -4,7 +4,8 @@ import {
   type LevelState,
   entityGroupOf,
 } from "./types.ts";
-import { Surface, rgba, Colors } from "./lib/surface.ts";
+import { Surface, rgba } from "./lib/surface.ts";
+import { TILE_SIZE, renderEntity } from "./entity.ts";
 import { getBanterFont } from "./lib/font.ts";
 
 function getColumnLetter(colIndex: number): string {
@@ -35,38 +36,6 @@ export function levelEntitiesAt(level: LevelState, p: Point): EntityState[] {
 
 export function levelHasEnemies(level: LevelState): boolean {
   return level.entities.some((e) => entityGroupOf(e.type) === "enemy");
-}
-
-export function renderEntity(
-  surface: Surface,
-  entity: EntityState,
-  tileSize: number = 16,
-  frame: number = 0,
-): void {
-  const yOffset = frame === 1 ? -1 : 0;
-  const px = entity.p.x * tileSize;
-  const py = entity.p.y * tileSize + yOffset;
-
-  if (entity.type === "player") {
-    surface.fillRect(px + 2, py + 2, tileSize - 4, tileSize - 4, Colors.Yellow);
-    surface.strokeRect(
-      px + 1,
-      py + 1,
-      tileSize - 2,
-      tileSize - 2,
-      Colors.White,
-    );
-  } else if (entityGroupOf(entity.type) === "enemy") {
-    surface.fillRect(px + 2, py + 2, tileSize - 4, tileSize - 4, Colors.Red);
-  } else {
-    surface.fillRect(
-      px + 2,
-      py + 2,
-      tileSize - 4,
-      tileSize - 4,
-      Colors.LightGrey,
-    );
-  }
 }
 
 // export function renderLevelText(
@@ -124,7 +93,6 @@ export interface LevelRenderOptions {
 export function renderLevel(
   surface: Surface,
   level: LevelState,
-  tileSize: number = 16,
   frame: number = 0,
   options: LevelRenderOptions = {},
   forPlayer?: string,
@@ -132,13 +100,13 @@ export function renderLevel(
 
   const showCoordinates =
     options.showCoordinates ??
-    (surface.width > level.width * tileSize ||
-      surface.height > level.height * tileSize);
+    (surface.width > level.width * TILE_SIZE ||
+      surface.height > level.height * TILE_SIZE);
 
   const coordinateSides =
     options.coordinateSides ??
-    (surface.width >= (level.width + 2) * tileSize &&
-    surface.height >= (level.height + 2) * tileSize
+    (surface.width >= (level.width + 2) * TILE_SIZE &&
+    surface.height >= (level.height + 2) * TILE_SIZE
       ? "all"
       : "bottom-left");
 
@@ -150,17 +118,17 @@ export function renderLevel(
 
   if (showCoordinates) {
     if (coordinateSides === "all") {
-      offsetX = tileSize;
-      offsetY = tileSize;
+      offsetX = TILE_SIZE;
+      offsetY = TILE_SIZE;
     } else {
-      offsetX = tileSize;
+      offsetX = TILE_SIZE;
       offsetY = 0;
     }
     surface.clear(borderColor);
   }
 
-  const boardW = level.width * tileSize;
-  const boardH = level.height * tileSize;
+  const boardW = level.width * TILE_SIZE;
+  const boardH = level.height * TILE_SIZE;
   const boardSurface = new Surface(boardW, boardH);
 
   // Draw background grid tiles
@@ -169,10 +137,10 @@ export function renderLevel(
       const isAlt = (x + y) % 2 === 1;
       const tileColor = isAlt ? rgba(35, 35, 35) : rgba(45, 45, 45);
       boardSurface.fillRect(
-        x * tileSize,
-        y * tileSize,
-        tileSize,
-        tileSize,
+        x * TILE_SIZE,
+        y * TILE_SIZE,
+        TILE_SIZE,
+        TILE_SIZE,
         tileColor,
       );
     }
@@ -195,7 +163,7 @@ export function renderLevel(
         picked =
           entitiesOnTile.find((e) => e.type === "player") ?? entitiesOnTile[0];
       }
-      renderEntity(boardSurface, picked, tileSize, frame);
+      renderEntity(boardSurface, picked, frame);
     }
   }
 
@@ -209,16 +177,16 @@ export function renderLevel(
     for (let y = 0; y < level.height; y++) {
       const rowNumber = (level.height - y).toString();
       const metrics = font.measureText(rowNumber);
-      const rowY = offsetY + y * tileSize;
+      const rowY = offsetY + y * TILE_SIZE;
 
       // Left border
-      const leftX = Math.floor((tileSize - metrics.width) / 2);
+      const leftX = Math.floor((TILE_SIZE - metrics.width) / 2);
       font.drawText(surface, rowNumber, leftX, rowY, fontColor);
 
       // Right border (if all sides)
       if (coordinateSides === "all") {
         const rightX =
-          offsetX + boardW + Math.floor((tileSize - metrics.width) / 2);
+          offsetX + boardW + Math.floor((TILE_SIZE - metrics.width) / 2);
         font.drawText(surface, rowNumber, rightX, rowY, fontColor);
       }
     }
@@ -228,7 +196,7 @@ export function renderLevel(
       const colLetter = getColumnLetter(x);
       const metrics = font.measureText(colLetter);
       const colX =
-        offsetX + x * tileSize + Math.floor((tileSize - metrics.width) / 2);
+        offsetX + x * TILE_SIZE + Math.floor((TILE_SIZE - metrics.width) / 2);
 
       // Bottom border
       const bottomY = offsetY + boardH;

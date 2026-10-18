@@ -204,6 +204,8 @@ export function decodePng(data: Uint8Array): SpriteSheet {
   let width = 0;
   let height = 0;
   let colorType = 0;
+  let palette: Uint8Array | null = null;
+  let paletteAlpha: Uint8Array | null = null;
   const idatParts: Uint8Array[] = [];
 
   while (pos < data.length) {
@@ -214,6 +216,10 @@ export function decodePng(data: Uint8Array): SpriteSheet {
       width = view.getUint32(pos + 8);
       height = view.getUint32(pos + 12);
       colorType = data[pos + 17];
+    } else if (type === "PLTE") {
+      palette = data.subarray(pos + 8, pos + 8 + len);
+    } else if (type === "tRNS") {
+      paletteAlpha = data.subarray(pos + 8, pos + 8 + len);
     } else if (type === "IDAT") {
       idatParts.push(data.subarray(pos + 8, pos + 8 + len));
     } else if (type === "IEND") {
@@ -236,7 +242,8 @@ export function decodePng(data: Uint8Array): SpriteSheet {
   }
 
   const raw = decompressZlib(compressed);
-  const bpp = colorType === 4 ? 2 : colorType === 6 ? 4 : colorType === 0 ? 1 : 3;
+  const bpp =
+    colorType === 4 ? 2 : colorType === 6 ? 4 : colorType === 0 || colorType === 3 ? 1 : 3;
   const stride = width * bpp;
   const uncompressed = new Uint8Array(width * height * bpp);
 
@@ -298,6 +305,14 @@ export function decodePng(data: Uint8Array): SpriteSheet {
       const g = uncompressed[i * 3 + 1];
       const b = uncompressed[i * 3 + 2];
       pixels[i] = (0xff << 24) | ((b & 0xff) << 16) | ((g & 0xff) << 8) | (r & 0xff);
+    } else if (colorType === 3 && palette) {
+      // Indexed (8-bit only), with optional per-entry alpha from tRNS
+      const idx = uncompressed[i];
+      const r = palette[idx * 3];
+      const g = palette[idx * 3 + 1];
+      const b = palette[idx * 3 + 2];
+      const a = paletteAlpha && idx < paletteAlpha.length ? paletteAlpha[idx] : 255;
+      pixels[i] = ((a & 0xff) << 24) | ((b & 0xff) << 16) | ((g & 0xff) << 8) | (r & 0xff);
     }
   }
 

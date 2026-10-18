@@ -20,6 +20,7 @@ export interface EntityState {
   type: EntityType;
   p: Point;
   playerId?: string;
+  appearance?: PlayerAppearance;
   cooldown?: number;
 }
 
