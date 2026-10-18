@@ -1,4 +1,6 @@
-import { GIFEncoder, quantize, applyPalette } from "gifenc";
+import * as gifencModule from "gifenc";
+const gifenc = (gifencModule as any).default ?? gifencModule;
+const { GIFEncoder, quantize, applyPalette } = gifenc;
 import { Surface } from "./surface.ts";
 import type { Level } from "../level.ts";
 import type { Player } from "../entity/player.ts";
@@ -7,6 +9,10 @@ export interface GifOptions {
   delay?: number; // Delay in ms per frame (default: 500)
   repeat?: number; // 0 = loop forever (default: 0)
   maxColors?: number; // max palette colors (default: 256)
+  showCoordinates?: boolean; // default: true
+  coordinateSides?: "all" | "bottom-left"; // default: "all"
+  fontColor?: number;
+  borderColor?: number;
 }
 
 /**
@@ -53,14 +59,28 @@ export function renderLevelToGif(
   options: GifOptions = {},
   forPlayer?: Player
 ): Uint8Array {
-  const width = level.width * tileSize;
-  const height = level.height * tileSize;
+  const showCoordinates = options.showCoordinates ?? true;
+  const coordinateSides = options.coordinateSides ?? "all";
+
+  let width: number;
+  let height: number;
+
+  if (!showCoordinates) {
+    width = level.width * tileSize;
+    height = level.height * tileSize;
+  } else if (coordinateSides === "bottom-left") {
+    width = (level.width + 1) * tileSize;
+    height = (level.height + 1) * tileSize;
+  } else {
+    width = (level.width + 2) * tileSize;
+    height = (level.height + 2) * tileSize;
+  }
 
   const frame0 = new Surface(width, height);
   const frame1 = new Surface(width, height);
 
-  level.render(frame0, tileSize, 0, forPlayer);
-  level.render(frame1, tileSize, 1, forPlayer);
+  level.render(frame0, tileSize, 0, options, forPlayer);
+  level.render(frame1, tileSize, 1, options, forPlayer);
 
   return encodeSurfacesToGif([frame0, frame1], options);
 }
