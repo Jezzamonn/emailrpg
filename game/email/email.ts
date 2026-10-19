@@ -110,7 +110,7 @@ export function handleIncomingEmail(
 function renderEmailTemplate(
   request: EmailRequest,
   address: string,
-  { games, template, messages, chatMessages, additionalData }: ActionResponse,
+  { games, template, messages, chatMessages, actionDescription, additionalData }: ActionResponse,
 ): EmailResponse {
   const from = "game@emailrpg.com";
   const incomingSubject = request.subject || "";
@@ -142,11 +142,20 @@ function renderEmailTemplate(
       if (games.length > 1) {
         images["hub_view"] = renderPlayerView(lastGame, address);
       }
-      html = renderTurnEmail({ images, messages, chatMessages });
+      html = renderTurnEmail({
+        images,
+        messages,
+        chatMessages,
+        action: actionDescription,
+      });
       break;
     case "level_enter":
       images["game_view"] = renderPlayerView(lastGame, address);
-      html = renderLevelEnterEmail(additionalData.level!, { images, messages });
+      html = renderLevelEnterEmail(additionalData.level!, {
+        images,
+        messages,
+        action: actionDescription,
+      });
       break;
     case "level_complete":
       images["game_view"] = renderPlayerView(games[0]!, address);
@@ -155,6 +164,7 @@ function renderEmailTemplate(
         images,
         messages,
         chatMessages,
+        action: actionDescription,
       });
       break;
     case "error":

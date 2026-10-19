@@ -1,4 +1,4 @@
-import { parseAction } from "./action.ts";
+import { describeAction, parseAction } from "./action.ts";
 import {
   createDungeonForLevel,
   getDungeonDefinition,
@@ -87,6 +87,8 @@ export interface ActionResponse {
   messages: string[];
   // Recent chat messages to include when sending the state of the overworld.
   chatMessages?: ChatMessage[];
+  // What the player just did, e.g. "You move left 2 squares."
+  actionDescription?: string;
   additionalData: Record<string, string>;
 }
 
@@ -185,7 +187,7 @@ export function doPlayerAction(
 
   // Otherwise: Take the next action for that player.
   try {
-    const { messages, games, template, level } = takePlayerTurn(
+    const { messages, games, template, level, actionDescription } = takePlayerTurn(
       game,
       address,
       emailContent,
@@ -206,6 +208,7 @@ export function doPlayerAction(
       template: template ?? "turn",
       messages,
       chatMessages,
+      actionDescription,
       additionalData: level != null ? { level } : {},
     };
   } catch (err) {
@@ -387,6 +390,7 @@ interface TurnResult {
   template?: ResponseTemplate;
   // Dungeon name the template is about.
   level?: string;
+  actionDescription?: string;
 }
 
 function takePlayerTurn(
@@ -408,10 +412,18 @@ function takePlayerTurn(
       );
     }
     if (action.type === "restart") {
-      return { messages: [], games: [restartPlayerLevel(newGame, address)] };
+      return {
+        messages: [],
+        games: [restartPlayerLevel(newGame, address)],
+        actionDescription: describeAction(action),
+      };
     }
     if (action.type === "exit") {
-      return { messages: [], games: [placePlayerInHub(newGame, address)] };
+      return {
+        messages: [],
+        games: [placePlayerInHub(newGame, address)],
+        actionDescription: describeAction(action),
+      };
     }
     throw new Error(
       'You died! You must choose to "restart" the level or "exit" to the island.',
@@ -441,7 +453,11 @@ function takePlayerTurn(
         `Something's wrong with that command: "${command.trim()}". Try something like "up 2", "a1" or "wait".`,
       );
     }
-    return { messages: [], games: [restartPlayerLevel(newGame, address)] };
+    return {
+      messages: [],
+      games: [restartPlayerLevel(newGame, address)],
+      actionDescription: describeAction(action),
+    };
   }
 
   if (action.type === "exit") {
@@ -450,7 +466,11 @@ function takePlayerTurn(
         `Something's wrong with that command: "${command.trim()}". Try something like "up 2", "a1" or "wait".`,
       );
     }
-    return { messages: [], games: [placePlayerInHub(newGame, address)] };
+    return {
+      messages: [],
+      games: [placePlayerInHub(newGame, address)],
+      actionDescription: describeAction(action),
+    };
   }
 
   if (player.currentLevel && !player.initialLevel) {
@@ -467,6 +487,7 @@ function takePlayerTurn(
   }
 
   const messages: string[] = [];
+  const actionDescription = describeAction(action);
 
   let target: Point | undefined;
   if (action.type === "move") {
@@ -519,7 +540,11 @@ function takePlayerTurn(
         );
       }
       if (targetLevelStr.toLowerCase() === "hub") {
-        return { messages, games: [placePlayerInHub(newGame, address)] };
+        return {
+          messages,
+          games: [placePlayerInHub(newGame, address)],
+          actionDescription,
+        };
       }
 
       const nextGame = enterDungeon(newGame, address, targetLevelStr);
@@ -533,9 +558,10 @@ function takePlayerTurn(
           games: [nextGame],
           template: "level_enter",
           level: dungeonName,
+          actionDescription,
         };
       }
-      return { messages, games: [nextGame] };
+      return { messages, games: [nextGame], actionDescription };
     }
 
     player.p = target;
@@ -591,10 +617,11 @@ function takePlayerTurn(
       games: [newGame, hubGame],
       template: "level_complete",
       level: getDungeonDefinition(completedLevelName).name,
+      actionDescription,
     };
   }
 
-  return { messages, games: [newGame] };
+  return { messages, games: [newGame], actionDescription };
 }
 
 const HAIR_TYPES: HairType[] = ["short", "ponytail", "bald"];

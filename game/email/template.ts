@@ -36,6 +36,8 @@ export interface TurnTemplateContext {
   images: ImageIdAndBytes;
   messages: string[];
   chatMessages?: ChatMessage[];
+  // What the player just did, e.g. "You move left 2 squares."
+  action?: string;
 }
 
 export interface ErrorTemplateContext {
@@ -49,6 +51,8 @@ export interface LevelTemplateContext {
   images: ImageIdAndBytes;
   messages: string[];
   chatMessages?: ChatMessage[];
+  // What the player just did, e.g. "You move left 2 squares."
+  action?: string;
 }
 
 function resolvePath(

@@ -1,4 +1,4 @@
-import { Dirs, type Dir, type Point, parseColumnLetters } from "./lib/common.ts";
+import { Dir, Dirs, type Point, parseColumnLetters } from "./lib/common.ts";
 
 export type ActionType = "move" | "wait" | "coord" | "restart" | "exit" | "say";
 
@@ -55,6 +55,33 @@ export class Action {
       return false;
     }
     return true;
+  }
+}
+
+const DIR_NAMES: Record<Dir, string> = {
+  [Dir.Up]: "up",
+  [Dir.Down]: "down",
+  [Dir.Left]: "left",
+  [Dir.Right]: "right",
+};
+
+// Describes what the player did, e.g. "You move left 2 squares."
+export function describeAction(action: Action): string {
+  switch (action.type) {
+    case "move": {
+      const squares = action.dist === 1 ? "square" : "squares";
+      return `You move ${DIR_NAMES[action.dir!]} ${action.dist} ${squares}.`;
+    }
+    case "coord":
+      return `You move to ${action.coord!.col.toUpperCase()}${action.coord!.row}.`;
+    case "wait":
+      return "You wait.";
+    case "restart":
+      return "You restart the level.";
+    case "exit":
+      return "You head back to the island.";
+    case "say":
+      return `You say "${action.message}".`;
   }
 }
 

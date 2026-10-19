@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { describeAction, parseAction } from "../action.ts";
 import { createGame } from "../game.ts";
 import { extractReplyText, handleIncomingEmail } from "../email/email.ts";
 import {
@@ -47,6 +48,14 @@ describe("Handlebars Email Templating", () => {
 
     assert.match(html, /You go ahead and do that thing/);
     assert.match(html, /You squash an enemy!/);
+
+    const withAction = renderTurnEmail({
+      images: {},
+      messages: [],
+      action: "You move left 2 squares.",
+    });
+    assert.match(withAction, /You move left 2 squares\. Here's what happens next/);
+    assert.equal(withAction.includes("You go ahead and do that thing"), false);
     assert.match(html, /<img src="cid:game_view"/);
     assert.match(html, /Pretty cool right/);
   });
@@ -212,8 +221,8 @@ describe("Handlebars Email Templating", () => {
       from: userEmail,
       body: "up 2\n\nOn Sun, Oct 18, 2026 at 7:00 PM <game@emailrpg.com> wrote:\n> Pretty cool right???",
     });
-    assert.match(res3.response.html, /You go ahead and do that thing/);
-    assert.match(res3.response.text, /You go ahead and do that thing/);
+    assert.match(res3.response.html, /You move up 2 squares\. Here's what happens next/);
+    assert.match(res3.response.text, /You move up 2 squares\. Here's what happens next/);
     assert.match(res3.response.text, /\[Game Board\]/);
     assert.ok(res3.response.images["game_view"]);
     assert.equal(res3.response.images["hub_view"], undefined);
@@ -318,5 +327,16 @@ describe("Handlebars Email Templating", () => {
       t0 + 7 * oneHour + 3000,
     );
     assert.doesNotMatch(bobTurn.response.text, /message number/);
+  });
+});
+
+describe("describeAction", () => {
+  it("says what the player just did", () => {
+    assert.equal(describeAction(parseAction("left 2")), "You move left 2 squares.");
+    assert.equal(describeAction(parseAction("u")), "You move up 1 square.");
+    assert.equal(describeAction(parseAction("c4")), "You move to C4.");
+    assert.equal(describeAction(parseAction("wait")), "You wait.");
+    assert.equal(describeAction(parseAction("restart")), "You restart the level.");
+    assert.equal(describeAction(parseAction("exit")), "You head back to the island.");
   });
 });
