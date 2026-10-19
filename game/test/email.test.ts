@@ -17,7 +17,7 @@ describe("Handlebars Email Templating", () => {
   });
 
   it("renders intro email template with player info and game board image", () => {
-    const html = renderIntroEmail({ imageSrc: "cid:game_view" });
+    const html = renderIntroEmail({ images: {} });
 
     assert.match(html, /OK,, here's the story so far/);
     assert.match(html, /peaceful beach/);
@@ -25,7 +25,7 @@ describe("Handlebars Email Templating", () => {
 
   it("renders turn update email template with game board image", () => {
     const html = renderTurnEmail({
-      imageSrc: "cid:game_view",
+      images: {},
       messages: ["You squash an enemy!"],
     });
 
@@ -68,7 +68,7 @@ describe("Handlebars Email Templating", () => {
     assert.equal(game.players[userEmail].state, "awaiting_customization");
     assert.match(res1.response.html, /WELCOME to/);
     assert.match(res1.response.text, /WELCOME to/);
-    assert.equal(res1.response.gifBytes, undefined);
+    assert.deepEqual(res1.response.images, {});
     assert.equal(/<[^>]+>/.test(res1.response.text), false);
 
     // Phase 2: Intro / Character creation
@@ -80,7 +80,7 @@ describe("Handlebars Email Templating", () => {
     assert.equal(game.players[userEmail].state, "active");
     assert.match(res2.response.html, /peaceful beach/);
     assert.match(res2.response.text, /peaceful beach/);
-    assert.ok(res2.response.gifBytes);
+    assert.ok(res2.response.images["game_view"]);
     assert.equal(/<[^>]+>/.test(res2.response.text), false);
 
     // Phase 3: Turn move
@@ -91,7 +91,7 @@ describe("Handlebars Email Templating", () => {
     assert.match(res3.response.html, /You go ahead and do that thing/);
     assert.match(res3.response.text, /You go ahead and do that thing/);
     assert.match(res3.response.text, /\[Game Board\]/);
-    assert.ok(res3.response.gifBytes);
+    assert.ok(res3.response.images["game_view"]);
     assert.equal(/<[^>]+>/.test(res3.response.text), false);
   });
 });

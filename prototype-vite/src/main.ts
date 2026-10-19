@@ -31,7 +31,7 @@ const replySubmitBtn = document.querySelector<HTMLButtonElement>("#reply-submit-
 interface UserSession {
   email: string;
   lastResponse?: EmailResponse;
-  lastGifUrl?: string;
+  imageUrls: Record<string, string>;
 }
 
 const sessions = new Map<string, UserSession>();
@@ -60,34 +60,28 @@ function sendEmailForSession(email: string, bodyText: string) {
   const normEmail = email.toLowerCase().trim();
   let session = sessions.get(normEmail);
   if (!session) {
-    session = { email: normEmail };
+    session = { email: normEmail, imageUrls: {} };
     sessions.set(normEmail, session);
   }
 
   // Generate email response via shared handler
-  const initial = handleIncomingEmail(game, {
+  const result = handleIncomingEmail(game, {
     from: normEmail,
     body: bodyText,
   });
 
-  // The game state is immutable, so we can re-run the same email with the GIF's blob URL as the image source.
-  let final = initial;
-  if (initial.response.gifBytes) {
-    if (session.lastGifUrl) {
-      URL.revokeObjectURL(session.lastGifUrl);
-    }
-    const blob = new Blob([initial.response.gifBytes.buffer as ArrayBuffer], { type: "image/gif" });
-    session.lastGifUrl = URL.createObjectURL(blob);
-
-    final = handleIncomingEmail(game, {
-      from: normEmail,
-      body: bodyText,
-      imageSrc: session.lastGifUrl,
-    });
+  // Turn the attached images into blob URLs so "cid:" references can be resolved in the preview.
+  for (const url of Object.values(session.imageUrls)) {
+    URL.revokeObjectURL(url);
+  }
+  session.imageUrls = {};
+  for (const [id, bytes] of Object.entries(result.response.images)) {
+    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: "image/gif" });
+    session.imageUrls[id] = URL.createObjectURL(blob);
   }
 
-  game = final.game;
-  session.lastResponse = final.response;
+  game = result.game;
+  session.lastResponse = result.response;
   activeEmail = normEmail;
   renderUI();
 }
@@ -137,6 +131,10 @@ function renderUI() {
   emailTo.textContent = resp.to;
 
   htmlBodyContainer.innerHTML = resp.html;
+  for (const img of htmlBodyContainer.querySelectorAll<HTMLImageElement>('img[src^="cid:"]')) {
+    const url = session.imageUrls[img.getAttribute("src")!.slice("cid:".length)];
+    if (url) img.src = url;
+  }
   textBodyPre.textContent = resp.text;
 
   // Configure composer based on user's onboarding phase
