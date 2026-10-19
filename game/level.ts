@@ -287,7 +287,8 @@ export function renderLevel(
     for (let y = 0; y < level.height; y++) {
       const rowNumber = (level.height - y).toString();
       const metrics = font.measureText(rowNumber);
-      const rowY = offsetY + y * TILE_SIZE;
+      const rowY =
+        offsetY + y * TILE_SIZE + Math.floor((TILE_SIZE - metrics.height) / 2);
 
       // Left border
       const leftX = Math.floor((TILE_SIZE - metrics.width) / 2);
@@ -307,14 +308,15 @@ export function renderLevel(
       const metrics = font.measureText(colLetter);
       const colX =
         offsetX + x * TILE_SIZE + Math.floor((TILE_SIZE - metrics.width) / 2);
+      const textYOffset = Math.floor((TILE_SIZE - metrics.height) / 2);
 
       // Bottom border
-      const bottomY = offsetY + boardH;
+      const bottomY = offsetY + boardH + textYOffset;
       font.drawText(surface, colLetter, colX, bottomY, fontColor);
 
       // Top border (if all sides)
       if (coordinateSides === "all") {
-        font.drawText(surface, colLetter, colX, 0, fontColor);
+        font.drawText(surface, colLetter, colX, textYOffset, fontColor);
       }
     }
   }
