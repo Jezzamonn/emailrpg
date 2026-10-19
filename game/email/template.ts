@@ -28,11 +28,109 @@ export interface ErrorTemplateContext {
 
 export type CustomizationErrorTemplateContext = Record<string, string>;
 
-export const welcomeTemplate = Handlebars.compile(welcomeTemplateSource);
-export const introTemplate = Handlebars.compile(introTemplateSource);
-export const turnTemplate = Handlebars.compile(turnTemplateSource);
-export const errorTemplate = Handlebars.compile(errorTemplateSource);
-export const customizationErrorTemplate = Handlebars.compile(
+function resolvePath(
+  path: hbs.AST.PathExpression,
+  stack: unknown[],
+): unknown {
+  const idx = Math.max(0, stack.length - 1 - (path.depth ?? 0));
+  let current: any = stack[idx];
+  for (const part of path.parts) {
+    if (current == null) return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
+function evaluateProgram(
+  program: hbs.AST.Program | undefined | null,
+  stack: unknown[],
+): string {
+  if (!program) return "";
+  let out = "";
+  for (const stmt of program.body) {
+    switch (stmt.type) {
+      case "ContentStatement":
+        out += (stmt as hbs.AST.ContentStatement).value;
+        break;
+      case "MustacheStatement": {
+        const mustache = stmt as hbs.AST.MustacheStatement;
+        const val =
+          mustache.path.type === "PathExpression"
+            ? resolvePath(mustache.path as hbs.AST.PathExpression, stack)
+            : undefined;
+        if (val != null && val !== false) {
+          const str = String(val);
+          out += mustache.escaped ? Handlebars.escapeExpression(str) : str;
+        }
+        break;
+      }
+      case "BlockStatement": {
+        const block = stmt as hbs.AST.BlockStatement;
+        const path = block.path as hbs.AST.PathExpression;
+        const name = path.original;
+        if (name === "if" || name === "unless") {
+          const param = block.params[0] as hbs.AST.PathExpression | undefined;
+          const val = param ? resolvePath(param, stack) : undefined;
+          const isTruthy = !Handlebars.Utils.isEmpty(val);
+          const cond = name === "if" ? isTruthy : !isTruthy;
+          out += evaluateProgram(
+            cond ? block.program : block.inverse,
+            stack,
+          );
+        } else if (name === "each") {
+          const param = block.params[0] as hbs.AST.PathExpression | undefined;
+          const list = param ? resolvePath(param, stack) : undefined;
+          if (Array.isArray(list) && list.length > 0) {
+            for (const item of list) {
+              out += evaluateProgram(block.program, [...stack, item]);
+            }
+          } else if (list && typeof list === "object" && !Array.isArray(list)) {
+            const values = Object.values(list);
+            if (values.length > 0) {
+              for (const item of values) {
+                out += evaluateProgram(block.program, [...stack, item]);
+              }
+            } else {
+              out += evaluateProgram(block.inverse, stack);
+            }
+          } else {
+            out += evaluateProgram(block.inverse, stack);
+          }
+        } else {
+          const val = resolvePath(path, stack);
+          if (Array.isArray(val)) {
+            if (val.length > 0) {
+              for (const item of val) {
+                out += evaluateProgram(block.program, [...stack, item]);
+              }
+            } else {
+              out += evaluateProgram(block.inverse, stack);
+            }
+          } else if (!Handlebars.Utils.isEmpty(val)) {
+            const nextStack =
+              typeof val === "object" && val !== null ? [...stack, val] : stack;
+            out += evaluateProgram(block.program, nextStack);
+          } else {
+            out += evaluateProgram(block.inverse, stack);
+          }
+        }
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+function compileTemplate<T = any>(source: string): (context?: T) => string {
+  const ast = Handlebars.parse(source);
+  return (context?: T) => evaluateProgram(ast, [context ?? {}]);
+}
+
+export const welcomeTemplate = compileTemplate<WelcomeTemplateContext>(welcomeTemplateSource);
+export const introTemplate = compileTemplate<IntroTemplateContext>(introTemplateSource);
+export const turnTemplate = compileTemplate<TurnTemplateContext>(turnTemplateSource);
+export const errorTemplate = compileTemplate<ErrorTemplateContext>(errorTemplateSource);
+export const customizationErrorTemplate = compileTemplate<CustomizationErrorTemplateContext>(
   customizationErrorTemplateSource,
 );
 
