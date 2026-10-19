@@ -608,9 +608,6 @@ function takePlayerTurn(
     if (!player.completedLevels.includes(completedLevelName)) {
       player.completedLevels.push(completedLevelName);
     }
-    messages.push(
-      `You beat ${completedLevelName}! You got the reward for ${completedLevelName}!`,
-    );
     const hubGame = placePlayerInHub(newGame, address);
     return {
       messages,
