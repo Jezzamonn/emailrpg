@@ -1,5 +1,6 @@
 Need to do
 
+- [ ] How to move
 - [ ] 3 levels, increasing challenge?
 - [ ] Writing for the three levels
 - [ ] Graphics for enemies
