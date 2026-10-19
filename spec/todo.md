@@ -3,8 +3,8 @@ Need to do
 - [ ] How to move
 - [ ] 3 levels, increasing challenge?
 - [ ] Writing for the three levels
-- [ ] Graphics for enemies
-- [ ] Rewrite / improve character selection stuff
+- [x] Graphics for enemies
+- [x] Rewrite / improve character selection stuff
 - [ ] Rewrite anything with an AI placeholder
 
 Important

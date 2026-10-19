@@ -69,7 +69,7 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
     id: 1,
     name: "Rat Cellar",
     ...parseLevel(`
-⬛⬛⬛⬛
+🐀⬛⬛⬛
 🦇⬛🐀🦇
 ⬛⬛⬛⬛
 ⬛🤴⬛⬛
@@ -79,13 +79,9 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
     id: 2,
     name: "Bat Belfry",
     ...parseLevel(`
-⬛⬛⬛⬛⬛⬛⬛
-⬛🦇⬛⬛⬛🦇⬛
-⬛⬛⬛🐌⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛🤴⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛
+🐌💤🐌
+⬛🤴⬛
+💤💤🐌
     `),
   },
   {
