@@ -1,8 +1,14 @@
-{{#each messages}}<p><strong>{{this}}</strong></p>
-{{/each}}<p><img src="cid:game_view" alt="Game Board" style="image-rendering: pixelated;"></p>
-<p><em><span style="color: #590063;">The slime dries up and the second spirit floats free: "Finally! I should have just forwarded that email to 10 friends. Bless you!"</span></em></p>
-<p><span style="color: #e67e23;"><em>You are whisked back to the beach.</em></span></p>
-{{#if images.hub_view}}<p><img src="cid:hub_view" alt="Game Board" style="image-rendering: pixelated;"></p>
-{{/if}}{{#if chatMessages}}<p>What people are saying:</p>
-{{#each chatMessages}}<p><strong>{{sender}}:</strong> {{message}}</p>
-{{/each}}{{/if}}<p>Where to next?</p>
+<p>{{#each messages}}</p>
+<p><strong>{{this}}</strong></p>
+<p>{{/each}}</p>
+<p><img src="cid:game_view" alt="Game Board" style="image-rendering: pixelated;"></p>
+<p><em><span style="color: #590063;">All snails are dead, great job!!</span></em></p>
+<p><span style="color: #e67e23;"><em><span style="font-size: 18pt;">BEACH TIME BABY!!!</span></em></span></p>
+<p>{{#if images.hub_view}}</p>
+<p><img src="cid:hub_view" alt="Game Board" style="image-rendering: pixelated;"></p>
+<p>{{/if}}{{#if chatMessages}}</p>
+<p>What people are saying:</p>
+<p>{{#each chatMessages}}</p>
+<p><strong>{{sender}}:</strong> {{message}}</p>
+<p>{{/each}}{{/if}}</p>
+<p>LET'S GOOOOO</p>
