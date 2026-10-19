@@ -70,9 +70,9 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
     name: "rat-and-bat",
     ...parseLevel(`
 🐀⬛⬛⬛
-🦇⬛🐀🦇
+🦇⬛⬛🦇
 ⬛⬛⬛⬛
-⬛🤴⬛⬛
+⬛🤴🐀⬛
     `),
   },
   {
@@ -81,14 +81,14 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
     ...parseLevel(`
 🐌💤🐌
 ⬛🤴⬛
-💤💤🐌
+⬛💤🐌
     `),
   },
   {
     id: 3,
     name: "horsies",
     ...parseLevel(`
-🐴🐴⬛
+⬛🐴⬛
 ⬛🐴🐴
 🐴⬛⬛
 ⬛🤴⬛
