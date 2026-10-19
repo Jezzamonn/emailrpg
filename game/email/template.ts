@@ -4,12 +4,14 @@ import welcomeTemplateSource from "./welcome.html";
 import introTemplateSource from "./intro.html";
 import turnTemplateSource from "./turn.html";
 
+export type ImageIdAndBytes = Record<string, Uint8Array>;
+
 export interface IntroTemplateContext {
-  imageSrc: string;
+  images: ImageIdAndBytes;
 }
 
 export interface TurnTemplateContext {
-  imageSrc: string;
+  images: ImageIdAndBytes;
   messages: string[];
 }
 

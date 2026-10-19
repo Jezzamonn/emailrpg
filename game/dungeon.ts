@@ -1,4 +1,6 @@
-import type { Point, EntityState, EntityType, LevelState } from "./types.ts";
+import type { Point } from "./lib/common.ts";
+import type { EntityState, EntityType } from "./entity.ts";
+import type { LevelState } from "./level.ts";
 
 export interface DungeonEnemyConfig {
   type: Exclude<EntityType, "player">;

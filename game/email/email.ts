@@ -10,13 +10,13 @@ import {
   renderIntroEmail,
   renderTurnEmail,
   htmlToPlainText,
+  type ImageIdAndBytes,
 } from "./template.ts";
 
 export interface EmailRequest {
   from: string;
   subject?: string;
   body: string;
-  imageSrc?: string; // e.g. "cid:game_view" for actual email attachment, or blob URL for web preview
 }
 
 export interface EmailResponse {
@@ -25,7 +25,7 @@ export interface EmailResponse {
   subject: string;
   text: string;
   html: string;
-  gifBytes?: Uint8Array;
+  images: ImageIdAndBytes;
 }
 
 export function handleIncomingEmail(
@@ -57,9 +57,8 @@ function renderEmailTemplate(
   const subject = incomingSubject.toLowerCase().startsWith("re:")
     ? incomingSubject
     : `Re: ${incomingSubject}`;
-  const imageSrc = request.imageSrc || "cid:game_view";
 
-  let gifBytes: Uint8Array | undefined;
+  let images: ImageIdAndBytes = {};
 
   let html: string;
   switch (template) {
@@ -67,12 +66,12 @@ function renderEmailTemplate(
       html = renderWelcomeEmail();
       break;
     case "intro":
-      gifBytes = renderPlayerView(game, address);
-      html = renderIntroEmail({ imageSrc });
+      images["game_view"] = renderPlayerView(game, address);
+      html = renderIntroEmail({ images });
       break;
     case "turn":
-      gifBytes = renderPlayerView(game, address);
-      html = renderTurnEmail({ imageSrc, messages });
+      images["game_view"] = renderPlayerView(game, address);
+      html = renderTurnEmail({ images, messages });
       break;
   }
 
@@ -82,7 +81,7 @@ function renderEmailTemplate(
     subject,
     html,
     text: htmlToPlainText(html),
-    gifBytes,
+    images,
   };
 }
 

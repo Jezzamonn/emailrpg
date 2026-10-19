@@ -1,4 +1,4 @@
-import { type PlayerAppearance, type Point } from "./types.ts";
+import type { Point } from "./lib/common.ts";
 import { type SpriteSheet, Surface, Colors } from "./lib/surface.ts";
 import { decodePng } from "./lib/png.ts";
 import skinLightPng from "../assets/exported/character-skin-light.png";
@@ -23,6 +23,18 @@ export type EntityType = "player" | "ortho" | "diag" | "knight" | "slow";
 export function entityGroupOf(type: EntityType): EntityGroup {
   if (type === "player") return "player";
   return "enemy";
+}
+
+export type HairType = "short" | "ponytail" | "bald";
+export type HairColor = "blonde" | "brown" | "black";
+export type SkinColor = "light" | "medium" | "dark";
+export type ClothesColor = "red" | "blue" | "green";
+
+export interface PlayerAppearance {
+  hairType: HairType;
+  hairColor: HairColor;
+  skinColor: SkinColor;
+  clothesColor: ClothesColor;
 }
 
 export interface EntityState {

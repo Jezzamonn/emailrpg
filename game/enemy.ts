@@ -1,9 +1,6 @@
-import {
-  type Point,
-  type EntityState,
-  type LevelState,
-  entityGroupOf,
-} from "./types.ts";
+import type { Point } from "./lib/common.ts";
+import { type EntityState, entityGroupOf } from "./entity.ts";
+import type { LevelState } from "./level.ts";
 
 export const ENEMY_MOVE_VECTORS = {
   diag: [

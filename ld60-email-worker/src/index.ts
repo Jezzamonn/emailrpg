@@ -23,7 +23,6 @@ export default {
 			from: message.from,
 			subject,
 			body: subject,
-			imageSrc: 'cid:game_view',
 		});
 		game = result.game;
 		const emailContent = result.response;
@@ -37,13 +36,16 @@ export default {
 		reply.setRecipient(message.from);
 		reply.setSubject(emailContent.subject);
 
-		if (emailContent.gifBytes) {
+		const attachmentNames = Object.keys(emailContent.images);
+		attachmentNames.sort();
+
+		for (const name of attachmentNames) {
 			reply.addAttachment({
-				filename: 'game.gif',
+				filename: `${name}.gif`,
 				contentType: 'image/gif',
-				data: bytesToBase64(emailContent.gifBytes),
+				data: bytesToBase64(emailContent.images[name]),
 				inline: true,
-				headers: { 'Content-ID': '<game_view>' },
+				headers: { 'Content-ID': `<${name}>` },
 			});
 		}
 

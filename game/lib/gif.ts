@@ -48,8 +48,7 @@ export function encodeSurfacesToGif(
   return gif.bytes();
 }
 
-import type { LevelState } from "../types.ts";
-import { renderLevel } from "../level.ts";
+import { renderLevel, type LevelState } from "../level.ts";
 import { TILE_SIZE } from "../entity.ts";
 
 /**

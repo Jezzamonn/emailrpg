@@ -1,4 +1,4 @@
-import { type Point } from "./types.ts";
+import type { Point } from "./lib/common.ts";
 import { Surface, rgba } from "./lib/surface.ts";
 import {
   TILE_SIZE,

@@ -1,6 +1,13 @@
 import { parseAction } from "./action.ts";
 import { stepLevelEnemies } from "./enemy.ts";
-import { entityGroupOf } from "./entity.ts";
+import {
+  type ClothesColor,
+  type HairColor,
+  type HairType,
+  type PlayerAppearance,
+  type SkinColor,
+  entityGroupOf,
+} from "./entity.ts";
 import {
   createLevel,
   levelEntitiesAt,
@@ -8,18 +15,17 @@ import {
   levelInBound,
   type LevelState,
 } from "./level.ts";
-import { Dirs, Points } from "./lib/common.ts";
-import {
-  type ClothesColor,
-  type HairColor,
-  type HairType,
-  type PlayerAppearance,
-  type PlayerState,
-  type Point,
-  type SkinColor,
-} from "./types.ts";
+import { Dirs, type Point, Points } from "./lib/common.ts";
 
-export * from "./types.ts";
+export type UserState = "awaiting_customization" | "active";
+
+export interface PlayerState {
+  email: string;
+  state: UserState;
+  appearance?: PlayerAppearance;
+  p: Point;
+  currentLevel?: LevelState;
+}
 
 export interface GameState {
   hubLevel: LevelState;
