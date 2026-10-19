@@ -34,14 +34,34 @@ export function encodeSurfacesToGif(
   const gif = GIFEncoder();
 
   for (const frame of frames) {
-    const palette = quantize(frame.bytes, maxColors);
-    const index = applyPalette(frame.bytes, palette);
+    let hasTransparency = false;
+    for (let i = 3; i < frame.bytes.length; i += 4) {
+      if (frame.bytes[i] === 0) {
+        hasTransparency = true;
+        break;
+      }
+    }
 
-    gif.writeFrame(index, width, height, {
-      palette,
-      delay,
-      repeat,
-    });
+    if (hasTransparency) {
+      const palette = quantize(frame.bytes, maxColors, { format: "rgba4444" });
+      const index = applyPalette(frame.bytes, palette, { format: "rgba4444" });
+      const transparentIndex = palette.findIndex((p: number[]) => p[3] === 0);
+      gif.writeFrame(index, width, height, {
+        palette,
+        delay,
+        repeat,
+        transparent: transparentIndex !== -1,
+        transparentIndex: transparentIndex !== -1 ? transparentIndex : undefined,
+      });
+    } else {
+      const palette = quantize(frame.bytes, maxColors);
+      const index = applyPalette(frame.bytes, palette);
+      gif.writeFrame(index, width, height, {
+        palette,
+        delay,
+        repeat,
+      });
+    }
   }
 
   gif.finish();
@@ -49,7 +69,36 @@ export function encodeSurfacesToGif(
 }
 
 import { renderLevel, type LevelState } from "../level.ts";
-import { TILE_SIZE } from "../entity.ts";
+import { renderEntity, TILE_SIZE, type PlayerAppearance } from "../entity.ts";
+
+/**
+ * Helper to render an array of player appearances side-by-side into an animated GIF.
+ */
+export function renderAppearancesToGif(
+  appearances: PlayerAppearance[],
+  options: GifOptions = {},
+): Uint8Array {
+  const width = appearances.length * TILE_SIZE;
+  const height = TILE_SIZE;
+
+  const frame0 = new Surface(width, height);
+  const frame1 = new Surface(width, height);
+
+  for (let i = 0; i < appearances.length; i++) {
+    renderEntity(
+      frame0,
+      { type: "player", p: { x: i, y: 0 }, appearance: appearances[i] },
+      0,
+    );
+    renderEntity(
+      frame1,
+      { type: "player", p: { x: i, y: 0 }, appearance: appearances[i] },
+      1,
+    );
+  }
+
+  return encodeSurfacesToGif([frame0, frame1], options);
+}
 
 /**
  * Helper to render a 2-frame animated GIF for a given Level.

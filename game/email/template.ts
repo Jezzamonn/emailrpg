@@ -8,6 +8,10 @@ import customizationErrorTemplateSource from "./customization-error.html";
 
 export type ImageIdAndBytes = Record<string, Uint8Array>;
 
+export interface WelcomeTemplateContext {
+  images?: ImageIdAndBytes;
+}
+
 export interface IntroTemplateContext {
   images: ImageIdAndBytes;
 }
@@ -32,8 +36,8 @@ export const customizationErrorTemplate = Handlebars.compile(
   customizationErrorTemplateSource,
 );
 
-export function renderWelcomeEmail(): string {
-  return welcomeTemplate({}).trim();
+export function renderWelcomeEmail(context: WelcomeTemplateContext = {}): string {
+  return welcomeTemplate(context).trim();
 }
 
 export function renderIntroEmail(context: IntroTemplateContext): string {

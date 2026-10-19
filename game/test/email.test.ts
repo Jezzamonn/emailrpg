@@ -12,10 +12,22 @@ import {
 } from "../email/template.ts";
 
 describe("Handlebars Email Templating", () => {
-  it("renders welcome email template", () => {
+  it("renders welcome email template with options and example images", () => {
     const html = renderWelcomeEmail();
     assert.match(html, /WELCOME to/);
     assert.match(html, /What do you look like/);
+    assert.match(html, /Skin tone.*\(in a row\)/i);
+    assert.match(html, /Hair type/);
+    assert.match(html, /Hair color.*not needed if ya bald!/i);
+    assert.match(html, /Clothes color/);
+    assert.match(html, /cid:skin_tone/);
+    assert.match(html, /cid:hair_type/);
+    assert.match(html, /cid:hair_color/);
+    assert.match(html, /cid:clothes_color/);
+    assert.match(html, /light, medium, dark/);
+    assert.match(html, /short, ponytail, bald/);
+    assert.match(html, /blonde, brown, black/);
+    assert.match(html, /red, blue, green/);
   });
 
   it("renders intro email template with player info and game board image", () => {
@@ -115,7 +127,12 @@ describe("Handlebars Email Templating", () => {
     assert.equal(game.players[userEmail].state, "awaiting_customization");
     assert.match(res1.response.html, /WELCOME to/);
     assert.match(res1.response.text, /WELCOME to/);
-    assert.deepEqual(res1.response.images, {});
+    assert.match(res1.response.text, /Skin tone \(in a row\): light, medium, dark/);
+    assert.match(res1.response.text, /Hair color: blonde, brown, black \(not needed if ya bald!\)/);
+    assert.ok(res1.response.images["skin_tone"]);
+    assert.ok(res1.response.images["hair_type"]);
+    assert.ok(res1.response.images["hair_color"]);
+    assert.ok(res1.response.images["clothes_color"]);
     assert.equal(/<[^>]+>/.test(res1.response.text), false);
 
     // Phase 2a: Incomplete customization -> customization_error without level image
