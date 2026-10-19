@@ -71,11 +71,17 @@ function renderBeachTiles(
           const horizMatch = getBeachTileAt(tiles, nx, y) >= tile ? 1 : 0;
           const vertMatch = getBeachTileAt(tiles, x, ny) >= tile ? 1 : 0;
           const diagMatch = getBeachTileAt(tiles, nx, ny) >= tile ? 1 : 0;
+          const diagReallyDontMatch =
+            getBeachTileAt(tiles, nx, ny) >= tile + 1 ? 1 : 0;
 
           let sx = baseTileX + horizMatch * TILE_SIZE + qx * halfTile;
           let sy = vertMatch * TILE_SIZE + qy * halfTile;
-          if (horizMatch && vertMatch && !diagMatch) {
+          if (!horizMatch && !vertMatch && diagReallyDontMatch) {
             sx = baseTileX + qx * halfTile;
+            sy = 2 * TILE_SIZE + qy * halfTile;
+          }
+          if (horizMatch && vertMatch && !diagMatch) {
+            sx = 1 * TILE_SIZE + baseTileX + qx * halfTile;
             sy = 2 * TILE_SIZE + qy * halfTile;
           }
           surface.drawSprite(
