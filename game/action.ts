@@ -85,7 +85,7 @@ export function parseAction(command: string): Action {
 
   const dir = Dirs.fromString(args[0]);
   const dist = args.length === 2 ? parseIntOrUndefined(args[1]) : 1;
-  if (dir === undefined || dist === undefined || args.length > 2) {
+  if (dir === undefined || dist === undefined || dist < 1 || args.length > 2) {
     throw new Error(
       `Something's wrong with that command: "${command.trim()}". Try something like "up 2", "a1" or "wait".`,
     );

@@ -40,7 +40,12 @@ export function createGame(): GameState {
   };
 }
 
-export type ResponseTemplate = "newplayer" | "intro" | "turn";
+export type ResponseTemplate =
+  | "newplayer"
+  | "intro"
+  | "turn"
+  | "error"
+  | "customization_error";
 
 export interface ActionResponse {
   game: GameState;
@@ -48,6 +53,7 @@ export interface ActionResponse {
   template: ResponseTemplate;
   // Things that happened this turn, to tell the player about.
   messages: string[];
+  additionalData: Record<string, string>;
 }
 
 export function doPlayerAction(
@@ -62,18 +68,46 @@ export function doPlayerAction(
   // If no player with the email: Add a new player!
   if (player == null) {
     addNewPlayer(newGame, address);
-    return { game: newGame, template: "newplayer", messages: [] };
+    return {
+      game: newGame,
+      template: "newplayer",
+      messages: [],
+      additionalData: {},
+    };
   }
 
   // They've been asked what they look like, so this email is their answer.
   if (player.state === "awaiting_customization") {
-    customizePlayer(newGame, player, emailContent);
-    return { game: newGame, template: "intro", messages: [] };
+    try {
+      customizePlayer(newGame, player, emailContent);
+    } catch (err) {
+      return {
+        game: newGame,
+        template: "customization_error",
+        messages: [],
+        additionalData: { error: (err as Error).message },
+      };
+    }
+    return {
+      game: newGame,
+      template: "intro",
+      messages: [],
+      additionalData: {},
+    };
   }
 
   // Otherwise: Take the next action for that player.
-  const messages = takePlayerTurn(newGame, player, emailContent);
-  return { game: newGame, template: "turn", messages };
+  try {
+    const messages = takePlayerTurn(newGame, player, emailContent);
+    return { game: newGame, template: "turn", messages, additionalData: {} };
+  } catch (err) {
+    return {
+      game: newGame,
+      template: "error",
+      messages: [],
+      additionalData: { error: (err as Error).message },
+    };
+  }
 }
 
 export function getPlayerLevel(game: GameState, player: PlayerState): LevelState {
@@ -127,16 +161,13 @@ function takePlayerTurn(
   player: PlayerState,
   command: string,
 ): string[] {
-  let action;
-  try {
-    action = parseAction(command);
-  } catch (err) {
-    return [(err as Error).message];
-  }
+  const action = parseAction(command);
 
   const level = getPlayerLevel(game, player);
   if (action.type === "move" && !action.isValid(levelHasEnemies(level))) {
-    return ["Whoa there! With enemies around you can only move 2 spaces at a time."];
+    throw new Error(
+      "Whoa there! With enemies around you can only move 2 spaces at a time.",
+    );
   }
 
   const messages: string[] = [];
@@ -148,7 +179,7 @@ function takePlayerTurn(
       Points.scale(Dirs.toPoint(action.dir!), action.dist),
     );
     if (!levelInBound(level, target)) {
-      return ["You can't go that way, that's the edge of the world!"];
+      throw new Error("You can't go that way, that's the edge of the world!");
     }
   } else if (action.type === "coord") {
     const colIndex = parseColumnLetters(action.coord!.col);
@@ -156,7 +187,7 @@ function takePlayerTurn(
     target = { x: colIndex, y };
 
     if (!levelInBound(level, target)) {
-      return ["You can't go that way, that's the edge of the world!"];
+      throw new Error("You can't go that way, that's the edge of the world!");
     }
 
     if (levelHasEnemies(level)) {
@@ -165,7 +196,7 @@ function takePlayerTurn(
       const isCardinal = (dx === 0 && dy !== 0) || (dy === 0 && dx !== 0);
       const dist = Math.max(Math.abs(dx), Math.abs(dy));
       if (!isCardinal || dist < 1 || dist > 2) {
-        return ["Whoa there! With enemies around you can only move 2 spaces at a time."];
+        throw new Error("Whoa there! With enemies around you can only move 2 spaces at a time.");
       }
     }
   }
@@ -212,16 +243,40 @@ const SKIN_COLORS: SkinColor[] = ["light", "medium", "dark"];
 const CLOTHES_COLORS: ClothesColor[] = ["red", "blue", "green"];
 
 function parseAppearance(description: string): PlayerAppearance {
-  // Look for any of the known options in what they wrote, otherwise use the first one.
   const words = description.toLowerCase().split(/[^a-z]+/);
-  const pick = <T extends string>(options: T[]): T =>
-    options.find((o) => words.includes(o)) ?? options[0];
+  const find = <T extends string>(options: T[]): T | undefined =>
+    options.find((o) => words.includes(o));
+
+  const hairType = find(HAIR_TYPES);
+  const hairColor = find(HAIR_COLORS);
+  const skinColor = find(SKIN_COLORS);
+  const clothesColor = find(CLOTHES_COLORS);
+
+  const missing: string[] = [];
+  if (!hairType) {
+    missing.push(`hair style (${HAIR_TYPES.join(", ")})`);
+  }
+  if (hairType !== "bald" && !hairColor) {
+    missing.push(`hair color (${HAIR_COLORS.join(", ")})`);
+  }
+  if (!skinColor) {
+    missing.push(`skin color (${SKIN_COLORS.join(", ")})`);
+  }
+  if (!clothesColor) {
+    missing.push(`clothes color (${CLOTHES_COLORS.join(", ")})`);
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Could not understand what you look like! Please include your ${missing.join(", ")}.`,
+    );
+  }
 
   return {
-    hairType: pick(HAIR_TYPES),
-    hairColor: pick(HAIR_COLORS),
-    skinColor: pick(SKIN_COLORS),
-    clothesColor: pick(CLOTHES_COLORS),
+    hairType: hairType!,
+    hairColor: hairColor ?? HAIR_COLORS[0],
+    skinColor: skinColor!,
+    clothesColor: clothesColor!,
   };
 }
 

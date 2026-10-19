@@ -1,7 +1,9 @@
 import { EmailMessage } from 'cloudflare:email';
 import { createMimeMessage } from 'mimetext';
+import PostalMime from 'postal-mime';
 import { createGame } from '../../game/game.ts';
 import { handleIncomingEmail } from '../../game/email/email.ts';
+import { htmlToPlainText } from '../../game/email/template.ts';
 
 function bytesToBase64(bytes: Uint8Array): string {
 	let binary = '';
@@ -18,11 +20,14 @@ export default {
 	async email(message: ForwardableEmailMessage, env: Record<string, any>, ctx: ExecutionContext): Promise<void> {
 		const subject = message.headers.get('subject') || '';
 		const messageId = message.headers.get('Message-ID');
+		const parsedEmail = await PostalMime.parse(message.raw);
+		const body =
+			parsedEmail.text ?? (parsedEmail.html ? htmlToPlainText(parsedEmail.html) : '');
 
 		const result = handleIncomingEmail(game, {
 			from: message.from,
 			subject,
-			body: subject,
+			body,
 		});
 		game = result.game;
 		const emailContent = result.response;

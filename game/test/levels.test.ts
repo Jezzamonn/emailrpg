@@ -13,7 +13,7 @@ import {
 
 function joinGame(game: GameState, email: string): GameState {
   game = doPlayerAction(game, email, "").game;
-  return doPlayerAction(game, email, "short brown hair, blue clothes").game;
+  return doPlayerAction(game, email, "short brown hair, medium skin, blue clothes").game;
 }
 
 function setPlayerPos(game: GameState, email: string, x: number, y: number) {
@@ -47,6 +47,25 @@ describe("Data-driven game architecture & spec/levels.md", () => {
       clothesColor: "green",
     });
     assert.equal(game.hubLevel.entities.some((e) => e.playerId === "alice@example.com"), true);
+  });
+
+  it("returns customization_error when character styling traits are missing, and allows bald without hair color", () => {
+    let game = createGame();
+    game = doPlayerAction(game, "alice@example.com", "hi").game;
+
+    const badRes = doPlayerAction(game, "alice@example.com", "Ponytail, blonde");
+    assert.equal(badRes.template, "customization_error");
+    assert.match(badRes.additionalData.error, /skin color/);
+    assert.match(badRes.additionalData.error, /clothes color/);
+    assert.equal(badRes.game.players["alice@example.com"].state, "awaiting_customization");
+    assert.equal(badRes.game.hubLevel.entities.length, 0);
+
+    const baldRes = doPlayerAction(badRes.game, "alice@example.com", "bald, light skin, red clothes");
+    assert.equal(baldRes.template, "intro");
+    assert.equal(baldRes.game.players["alice@example.com"].state, "active");
+    assert.equal(baldRes.game.players["alice@example.com"].appearance?.hairType, "bald");
+    assert.equal(baldRes.game.players["alice@example.com"].appearance?.skinColor, "light");
+    assert.equal(baldRes.game.players["alice@example.com"].appearance?.clothesColor, "red");
   });
 
   it("doPlayerAction does not modify the game state passed in", () => {
@@ -92,20 +111,21 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     assert.equal(levelEntitiesAt(game.hubLevel, { x: 2, y: 5 }).length, 2);
   });
 
-  it("moving off the edge of the level is rejected", () => {
+  it("moving off the edge of the level is rejected with error template", () => {
     let game = joinGame(createGame(), "alice@example.com");
     setPlayerPos(game, "alice@example.com", 0, 0);
 
     const res = doPlayerAction(game, "alice@example.com", "left");
-    assert.equal(res.messages.length, 1);
+    assert.equal(res.template, "error");
+    assert.match(res.additionalData.error, /edge of the world/);
     assert.deepEqual(res.game.players["alice@example.com"].p, { x: 0, y: 0 });
   });
 
-  it("bad commands produce a message instead of a move", () => {
+  it("bad commands produce an error response instead of a move", () => {
     const game = joinGame(createGame(), "alice@example.com");
     const res = doPlayerAction(game, "alice@example.com", "dance wildly");
-    assert.equal(res.template, "turn");
-    assert.match(res.messages[0], /Something's wrong with that command/);
+    assert.equal(res.template, "error");
+    assert.match(res.additionalData.error, /Something's wrong with that command/);
   });
 
   it("movement is limited to 2 squares when enemies are present in the level", () => {
@@ -116,10 +136,12 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     alice.p = { x: 3, y: 5 };
 
     const illegal = doPlayerAction(game, "alice@example.com", "up 3");
+    assert.equal(illegal.template, "error");
+    assert.match(illegal.additionalData.error, /only move 2 spaces/);
     assert.deepEqual(illegal.game.players["alice@example.com"].p, { x: 3, y: 5 });
-    assert.equal(illegal.messages.length, 1);
 
     const valid = doPlayerAction(game, "alice@example.com", "up 1");
+    assert.equal(valid.template, "turn");
     assert.deepEqual(valid.game.players["alice@example.com"].p, { x: 3, y: 4 });
   });
 

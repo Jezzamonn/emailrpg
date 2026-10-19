@@ -12,7 +12,7 @@
 	},
 	"upload_source_maps": true,
 	"rules": [
-		{ "type": "Text", "globs": ["**/*.hbs"], "fallthrough": true },
+		{ "type": "Text", "globs": ["**/*.hbs", "**/*.html"], "fallthrough": true },
 		{ "type": "Data", "globs": ["**/*.png"], "fallthrough": true }
 	]
 	/**

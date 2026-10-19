@@ -139,7 +139,7 @@ function renderUI() {
 
   // Configure composer based on user's onboarding phase
   if (game.players[activeEmail]?.state === "awaiting_customization") {
-    replyInput.placeholder = "Describe your look (e.g. 'ponytail, blonde hair, blue clothes')...";
+    replyInput.placeholder = "Describe your look (e.g. 'ponytail, blonde hair, light skin, blue clothes')...";
     replySubmitBtn.textContent = "Send Customization";
   } else {
     replyInput.placeholder = "Enter command (e.g. up, down 2, a1, m10, wait)...";

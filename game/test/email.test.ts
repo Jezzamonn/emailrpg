@@ -1,11 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { createGame } from "../game.ts";
-import { handleIncomingEmail } from "../email/email.ts";
+import { extractReplyText, handleIncomingEmail } from "../email/email.ts";
 import {
   renderWelcomeEmail,
   renderIntroEmail,
   renderTurnEmail,
+  renderErrorEmail,
+  renderCustomizationErrorEmail,
   htmlToPlainText,
 } from "../email/template.ts";
 
@@ -35,6 +37,23 @@ describe("Handlebars Email Templating", () => {
     assert.match(html, /Pretty cool right/);
   });
 
+  it("renders error and customization error email templates", () => {
+    const errorHtml = renderErrorEmail({
+      images: {},
+      error: "You can't go that way!",
+    });
+    assert.match(errorHtml, /color:\s*#e03e2d/);
+    assert.match(errorHtml, /You can&#x27;t go that way!/);
+    assert.match(errorHtml, /<img src="cid:game_view"/);
+
+    const custErrorHtml = renderCustomizationErrorEmail({
+      error: "Could not understand what you look like!",
+    });
+    assert.match(custErrorHtml, /color:\s*#e03e2d/);
+    assert.match(custErrorHtml, /Could not understand what you look like!/);
+    assert.equal(custErrorHtml.includes("cid:game_view"), false);
+  });
+
   it("htmlToPlainText strips HTML tags, formats lists and images, and decodes entities", () => {
     const sampleHtml = `
       <h2>Title &amp; Subtitle</h2>
@@ -55,6 +74,34 @@ describe("Handlebars Email Templating", () => {
     assert.equal(/<[^>]+>/.test(text), false);
   });
 
+  it("extractReplyText strips quoted email content and reply headers", () => {
+    assert.equal(
+      extractReplyText(
+        "up 2\n\nOn Sun, Oct 18, 2026 at 7:00 PM <game@emailrpg.com> wrote:\n> You go ahead and do that thing.\n> [Game Board]",
+      ),
+      "up 2",
+    );
+
+    assert.equal(
+      extractReplyText(
+        "ponytail, brown hair, light skin, blue clothes\n\nOn Sun, Oct 18, 2026 at 7:00 PM Game <game@emailrpg.com>\nwrote:\n> WELCOME to Email RPG",
+      ),
+      "ponytail, brown hair, light skin, blue clothes",
+    );
+
+    assert.equal(
+      extractReplyText(
+        "wait\n\n-----Original Message-----\nFrom: game@emailrpg.com\nSent: Sunday\n\nOld text",
+      ),
+      "wait",
+    );
+
+    assert.equal(
+      extractReplyText("left 3\n> quoted line without header"),
+      "left 3",
+    );
+  });
+
   it("handleIncomingEmail integrates with Handlebars templates across phases and generates plaintext", () => {
     let game = createGame();
     const userEmail = "test@example.com";
@@ -71,10 +118,20 @@ describe("Handlebars Email Templating", () => {
     assert.deepEqual(res1.response.images, {});
     assert.equal(/<[^>]+>/.test(res1.response.text), false);
 
-    // Phase 2: Intro / Character creation
+    // Phase 2a: Incomplete customization -> customization_error without level image
+    const res2Err = handleIncomingEmail(game, {
+      from: userEmail,
+      body: "Ponytail with brown hair\n\nOn Sun, Oct 18, 2026 wrote:\n> light skin red clothes",
+    });
+    game = res2Err.game;
+    assert.equal(game.players[userEmail].state, "awaiting_customization");
+    assert.match(res2Err.response.html, /Could not understand what you look like/);
+    assert.deepEqual(res2Err.response.images, {});
+
+    // Phase 2b: Complete character creation
     const res2 = handleIncomingEmail(game, {
       from: userEmail,
-      body: "Ponytail with brown hair",
+      body: "Ponytail with brown hair, light skin, blue clothes",
     });
     game = res2.game;
     assert.equal(game.players[userEmail].state, "active");
@@ -83,10 +140,20 @@ describe("Handlebars Email Templating", () => {
     assert.ok(res2.response.images["game_view"]);
     assert.equal(/<[^>]+>/.test(res2.response.text), false);
 
-    // Phase 3: Turn move
+    // Phase 3a: Invalid command -> error template with level image
+    const res3Err = handleIncomingEmail(game, {
+      from: userEmail,
+      body: "dance\n\n> up 2",
+    });
+    game = res3Err.game;
+    assert.match(res3Err.response.html, /Something&#x27;s wrong with that command/);
+    assert.equal(res3Err.response.html.includes("You go ahead and do that thing"), false);
+    assert.ok(res3Err.response.images["game_view"]);
+
+    // Phase 3b: Valid turn move with quoted reply text
     const res3 = handleIncomingEmail(game, {
       from: userEmail,
-      body: "u 2",
+      body: "up 2\n\nOn Sun, Oct 18, 2026 at 7:00 PM <game@emailrpg.com> wrote:\n> Pretty cool right???",
     });
     assert.match(res3.response.html, /You go ahead and do that thing/);
     assert.match(res3.response.text, /You go ahead and do that thing/);
