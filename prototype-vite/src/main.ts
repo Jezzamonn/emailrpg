@@ -1,8 +1,145 @@
 import "./style.css";
-import { createGame } from "@game/game.ts";
+import { createGame, type GameState } from "@game/game.ts";
 import { handleIncomingEmail, type EmailResponse } from "@game/email/email.ts";
 
-let game = createGame();
+const GAME_STORAGE_KEY = "ld60_game_state";
+const EMAILS_STORAGE_KEY = "ld60_last_emails";
+const ACTIVE_EMAIL_STORAGE_KEY = "ld60_active_email";
+
+interface SerializedEmailResponse {
+  from: string;
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  images: Record<string, string>;
+}
+
+interface UserSession {
+  email: string;
+  lastResponse?: EmailResponse;
+  imageUrls: Record<string, string>;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function serializeEmailResponse(resp: EmailResponse): SerializedEmailResponse {
+  const images: Record<string, string> = {};
+  for (const [id, bytes] of Object.entries(resp.images)) {
+    images[id] = bytesToBase64(bytes);
+  }
+  return {
+    from: resp.from,
+    to: resp.to,
+    subject: resp.subject,
+    text: resp.text,
+    html: resp.html,
+    images,
+  };
+}
+
+function deserializeEmailResponse(serialized: SerializedEmailResponse): EmailResponse {
+  const images: Record<string, Uint8Array> = {};
+  for (const [id, b64] of Object.entries(serialized.images ?? {})) {
+    images[id] = base64ToBytes(b64);
+  }
+  return {
+    from: serialized.from,
+    to: serialized.to,
+    subject: serialized.subject,
+    text: serialized.text,
+    html: serialized.html,
+    images,
+  };
+}
+
+function createImageUrls(images: Record<string, Uint8Array>): Record<string, string> {
+  const imageUrls: Record<string, string> = {};
+  for (const [id, bytes] of Object.entries(images)) {
+    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: "image/gif" });
+    imageUrls[id] = URL.createObjectURL(blob);
+  }
+  return imageUrls;
+}
+
+let game: GameState = createGame();
+const sessions = new Map<string, UserSession>();
+let activeEmail: string | null = null;
+let currentView: "html" | "text" = "html";
+
+function saveState() {
+  try {
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(game));
+
+    const lastEmails: Record<string, SerializedEmailResponse> = {};
+    for (const [email, session] of sessions.entries()) {
+      if (session.lastResponse) {
+        lastEmails[email] = serializeEmailResponse(session.lastResponse);
+      }
+    }
+    localStorage.setItem(EMAILS_STORAGE_KEY, JSON.stringify(lastEmails));
+
+    if (activeEmail) {
+      localStorage.setItem(ACTIVE_EMAIL_STORAGE_KEY, activeEmail);
+    } else {
+      localStorage.removeItem(ACTIVE_EMAIL_STORAGE_KEY);
+    }
+  } catch (err) {
+    console.error("Failed to save state to localStorage:", err);
+  }
+}
+
+function loadState() {
+  try {
+    const savedGame = localStorage.getItem(GAME_STORAGE_KEY);
+    if (savedGame) {
+      game = JSON.parse(savedGame) as GameState;
+    }
+
+    const savedEmails = localStorage.getItem(EMAILS_STORAGE_KEY);
+    if (savedEmails) {
+      const parsedEmails = JSON.parse(savedEmails) as Record<string, SerializedEmailResponse>;
+      for (const [email, serializedResp] of Object.entries(parsedEmails)) {
+        const lastResponse = deserializeEmailResponse(serializedResp);
+        sessions.set(email, {
+          email,
+          lastResponse,
+          imageUrls: createImageUrls(lastResponse.images),
+        });
+      }
+    }
+
+    for (const email of Object.keys(game.players)) {
+      if (!sessions.has(email)) {
+        sessions.set(email, { email, imageUrls: {} });
+      }
+    }
+
+    const savedActiveEmail = localStorage.getItem(ACTIVE_EMAIL_STORAGE_KEY);
+    if (savedActiveEmail && sessions.has(savedActiveEmail)) {
+      activeEmail = savedActiveEmail;
+    } else if (sessions.size > 0) {
+      activeEmail = sessions.keys().next().value ?? null;
+    }
+  } catch (err) {
+    console.error("Failed to load state from localStorage:", err);
+  }
+}
 
 // DOM elements - Session Bar
 const startEmailForm = document.querySelector<HTMLFormElement>("#start-email-form")!;
@@ -27,16 +164,6 @@ const btnTextView = document.querySelector<HTMLButtonElement>("#btn-text-view")!
 const replyForm = document.querySelector<HTMLFormElement>("#reply-form")!;
 const replyInput = document.querySelector<HTMLInputElement>("#reply-input")!;
 const replySubmitBtn = document.querySelector<HTMLButtonElement>("#reply-submit-btn")!;
-
-interface UserSession {
-  email: string;
-  lastResponse?: EmailResponse;
-  imageUrls: Record<string, string>;
-}
-
-const sessions = new Map<string, UserSession>();
-let activeEmail: string | null = null;
-let currentView: "html" | "text" = "html";
 
 function setView(view: "html" | "text") {
   currentView = view;
@@ -74,15 +201,12 @@ function sendEmailForSession(email: string, bodyText: string) {
   for (const url of Object.values(session.imageUrls)) {
     URL.revokeObjectURL(url);
   }
-  session.imageUrls = {};
-  for (const [id, bytes] of Object.entries(result.response.images)) {
-    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: "image/gif" });
-    session.imageUrls[id] = URL.createObjectURL(blob);
-  }
+  session.imageUrls = createImageUrls(result.response.images);
 
   game = result.game;
   session.lastResponse = result.response;
   activeEmail = normEmail;
+  saveState();
   renderUI();
 }
 
@@ -101,6 +225,7 @@ function renderUI() {
 
       pill.addEventListener("click", () => {
         activeEmail = email;
+        saveState();
         renderUI();
       });
       sessionPills.appendChild(pill);
@@ -144,9 +269,6 @@ function renderUI() {
   } else if (game.players[activeEmail]?.state === "dead") {
     replyInput.placeholder = "You died! Enter 'restart' or 'island'...";
     replySubmitBtn.textContent = "Send Choice";
-  } else if (game.players[activeEmail]?.state === "victory") {
-    replyInput.placeholder = "Level complete! Reply with anything to return to the island...";
-    replySubmitBtn.textContent = "Return to Island";
   } else {
     replyInput.placeholder = "Enter command (e.g. up, down 2, a1, m10, wait)...";
     replySubmitBtn.textContent = "Send Command";
@@ -161,13 +283,15 @@ startEmailForm.addEventListener("submit", (e) => {
   const email = startEmailInput.value.trim();
   if (!email) return;
 
-  const user = game.players[email.toLowerCase().trim()];
+  const normEmail = email.toLowerCase().trim();
+  const user = game.players[normEmail];
   if (!user) {
     // New user -> send initial email to trigger welcome response
-    sendEmailForSession(email, "");
+    sendEmailForSession(normEmail, "");
   } else {
     // Existing user -> switch to their active session
-    activeEmail = email.toLowerCase().trim();
+    activeEmail = normEmail;
+    saveState();
     renderUI();
   }
 });
@@ -177,10 +301,11 @@ replyForm.addEventListener("submit", (e) => {
   e.preventDefault();
   if (!activeEmail) return;
   const command = replyInput.value.trim();
-  if (command || game.players[activeEmail]?.state === "victory") {
+  if (command) {
     replyInput.value = "";
     sendEmailForSession(activeEmail, command);
   }
 });
 
+loadState();
 renderUI();
