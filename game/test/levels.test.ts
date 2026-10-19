@@ -9,6 +9,7 @@ import {
   parseAction,
   levelEntitiesAt,
   levelHasEnemies,
+  stepLevelEnemies,
 } from "../index.ts";
 
 function joinGame(game: GameState, email: string): GameState {
@@ -244,5 +245,118 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     const res = doPlayerAction(game, "alice@example.com", "d3");
     assert.deepEqual(res.game.players["alice@example.com"].p, { x: 3, y: 4 });
     assert.ok(res.messages.includes("You squash an enemy!"));
+  });
+
+  it("enemies cannot move into portals, but players can", () => {
+    // Test that enemies avoid moving into portals
+    const testLevel = {
+      width: 5,
+      height: 5,
+      entities: [
+        { type: "player" as const, p: { x: 2, y: 4 }, playerId: "p1" },
+        { type: "ortho" as const, p: { x: 2, y: 1 } },
+        { type: "portal" as const, p: { x: 2, y: 2 }, targetLevel: "Rat Cellar" },
+      ],
+    };
+
+    // If there were no portal at (2, 2), ortho enemy would step south to (2, 2)
+    const stepped = stepLevelEnemies(testLevel);
+    const enemy = stepped.entities.find((e) => e.type === "ortho")!;
+    assert.notDeepEqual(enemy.p, { x: 2, y: 2 });
+
+    // Test that players can move into portals
+    let game = joinGame(createGame(), "alice@example.com");
+    game.hubLevel.entities.push({
+      type: "portal",
+      p: { x: 1, y: 1 },
+      targetLevel: "Rat Cellar",
+    });
+    setPlayerPos(game, "alice@example.com", 1, 0);
+
+    const res = doPlayerAction(game, "alice@example.com", "down 1");
+    // Player moved into portal and into dungeon
+    assert.ok(res.game.players["alice@example.com"].currentLevel);
+  });
+
+  it("moving into a portal moves player into their own dungeon and removes them from hub world", () => {
+    let game = createGame();
+    game = joinGame(game, "alice@example.com");
+    game = joinGame(game, "bob@example.com");
+
+    // Add portal to Bat Belfry (id 2) at (4, 4) in hub world
+    game.hubLevel.entities.push({
+      type: "portal",
+      p: { x: 4, y: 4 },
+      targetLevel: "Bat Belfry",
+    });
+
+    setPlayerPos(game, "alice@example.com", 4, 3);
+    setPlayerPos(game, "bob@example.com", 1, 1);
+
+    // Both players currently in hub
+    assert.equal(game.hubLevel.entities.some((e) => e.playerId === "alice@example.com"), true);
+    assert.equal(game.hubLevel.entities.some((e) => e.playerId === "bob@example.com"), true);
+
+    // Alice steps south onto portal
+    const res = doPlayerAction(game, "alice@example.com", "down 1");
+    const newGame = res.game;
+    const alice = newGame.players["alice@example.com"];
+
+    // Alice is now in her own level/dungeon
+    assert.ok(alice.currentLevel);
+    assert.equal(alice.currentLevel.width, 7);
+    assert.equal(alice.currentLevel.height, 7);
+    // Bat Belfry starting pos is (3, 5)
+    assert.deepEqual(alice.p, { x: 3, y: 5 });
+    assert.equal(
+      alice.currentLevel.entities.some(
+        (e) => e.type === "player" && e.playerId === "alice@example.com" && e.p.x === 3 && e.p.y === 5,
+      ),
+      true,
+    );
+
+    // Alice should NO LONGER show up in the hub world
+    assert.equal(
+      newGame.hubLevel.entities.some((e) => e.playerId === "alice@example.com"),
+      false,
+    );
+    // Bob should still be in the hub world
+    assert.equal(
+      newGame.hubLevel.entities.some((e) => e.playerId === "bob@example.com"),
+      true,
+    );
+  });
+
+  it("when a player dies, they spawn back in the hub world", () => {
+    let game = joinGame(createGame(), "alice@example.com");
+    const alice = game.players["alice@example.com"];
+
+    // Place Alice in a dungeon
+    alice.currentLevel = {
+      width: 5,
+      height: 5,
+      entities: [
+        { type: "player", p: { x: 2, y: 2 }, playerId: alice.email },
+        { type: "ortho", p: { x: 2, y: 1 } },
+      ],
+    };
+    alice.p = { x: 2, y: 2 };
+    // Ensure Alice is not in hub while in dungeon
+    game.hubLevel.entities = game.hubLevel.entities.filter((e) => e.playerId !== alice.email);
+
+    // Alice waits; ortho enemy moves south to (2, 2) and kills her
+    const res = doPlayerAction(game, "alice@example.com", "wait");
+    const updatedAlice = res.game.players["alice@example.com"];
+
+    // Alice should be spawned back in the hub world
+    assert.equal(updatedAlice.currentLevel, undefined);
+    assert.equal(
+      res.game.hubLevel.entities.some((e) => e.playerId === alice.email),
+      true,
+    );
+    // The player entity in hub is at updatedAlice.p
+    const hubPlayerEntity = res.game.hubLevel.entities.find((e) => e.playerId === alice.email)!;
+    assert.deepEqual(hubPlayerEntity.p, updatedAlice.p);
+    assert.ok(res.messages.some((m) => m.includes("wake up back on the beach")));
   });
 });

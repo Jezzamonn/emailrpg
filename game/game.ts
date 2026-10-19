@@ -1,4 +1,5 @@
 import { parseAction } from "./action.ts";
+import { createDungeonForLevel } from "./dungeon.ts";
 import { stepLevelEnemies } from "./enemy.ts";
 import {
   type ClothesColor,
@@ -7,6 +8,7 @@ import {
   type PlayerAppearance,
   type SkinColor,
   entityGroupOf,
+  getPortalTargetLevel,
 } from "./entity.ts";
 import {
   createHubLevel,
@@ -148,6 +150,9 @@ function customizePlayer(
 function placePlayerInHub(game: GameState, player: PlayerState): void {
   delete player.currentLevel;
   player.p = findUnoccupiedHubPosition(game.hubLevel);
+  game.hubLevel.entities = game.hubLevel.entities.filter(
+    (e) => e.playerId !== player.email,
+  );
   game.hubLevel.entities.push({
     type: "player",
     p: { ...player.p },
@@ -211,6 +216,39 @@ function takePlayerTurn(
       messages.push("You squash an enemy!");
     }
 
+    // Check if player moved into a portal
+    const portal = levelEntitiesAt(level, target).find(
+      (e) => e.type === "portal",
+    );
+    if (portal) {
+      const targetLevelStr = getPortalTargetLevel(portal) ?? "0";
+      if (targetLevelStr.toLowerCase() === "hub") {
+        placePlayerInHub(game, player);
+      } else {
+        const { level: newLevel, playerStart } =
+          createDungeonForLevel(targetLevelStr);
+
+        // Remove player from current level and hub level so they no longer show up in hub
+        level.entities = level.entities.filter(
+          (e) => e.playerId !== player.email,
+        );
+        game.hubLevel.entities = game.hubLevel.entities.filter(
+          (e) => e.playerId !== player.email,
+        );
+
+        player.p = { ...playerStart };
+        newLevel.entities.push({
+          type: "player",
+          p: { ...player.p },
+          playerId: player.email,
+          appearance: player.appearance,
+        });
+        player.currentLevel = newLevel;
+      }
+
+      return messages;
+    }
+
     player.p = target;
     const playerEntity = level.entities.find(
       (e) => e.playerId === player.email,
@@ -221,17 +259,20 @@ function takePlayerTurn(
   }
 
   // Then the enemies get their turn.
-  let playerKilled = false;
+  const killedPlayerIds: string[] = [];
   const steppedLevel = stepLevelEnemies(level, (playerId) => {
-    if (playerId === player.email) {
-      playerKilled = true;
-    }
+    killedPlayerIds.push(playerId);
   });
   setPlayerLevel(game, player, steppedLevel);
 
-  if (playerKilled) {
-    messages.push("Oh no, you got got! You wake up back on the beach...");
-    placePlayerInHub(game, player);
+  for (const killedId of killedPlayerIds) {
+    const killedPlayer = game.players[killedId];
+    if (killedPlayer) {
+      placePlayerInHub(game, killedPlayer);
+    }
+    if (killedId === player.email) {
+      messages.push("Oh no, you got got! You wake up back on the beach...");
+    }
   }
 
   return messages;

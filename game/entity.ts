@@ -13,15 +13,17 @@ import spikehairBlackPng from "../assets/exported/character-spikehair-black.png"
 import ponytailBlondePng from "../assets/exported/character-ponytail-blonde.png";
 import ponytailBrownPng from "../assets/exported/character-ponytail-brown.png";
 import ponytailBlackPng from "../assets/exported/character-ponytail-black.png";
+import firePng from "../assets/exported/fire.png";
 
 // Size of a tile in pixels, which is also the size of the player sprites.
 export const TILE_SIZE = 30;
 
-export type EntityGroup = "player" | "enemy" | "obstacle";
-export type EntityType = "player" | "ortho" | "diag" | "knight" | "slow";
+export type EntityGroup = "player" | "enemy" | "obstacle" | "portal";
+export type EntityType = "player" | "ortho" | "diag" | "knight" | "slow" | "portal";
 
 export function entityGroupOf(type: EntityType): EntityGroup {
   if (type === "player") return "player";
+  if (type === "portal") return "portal";
   return "enemy";
 }
 
@@ -43,6 +45,19 @@ export interface EntityState {
   playerId?: string;
   appearance?: PlayerAppearance;
   cooldown?: number;
+  portalLevel?: string;
+  targetLevel?: string;
+  destinationLevel?: string;
+  level?: string;
+}
+
+export function getPortalTargetLevel(entity: EntityState): string | undefined {
+  return (
+    entity.portalLevel ??
+    entity.targetLevel ??
+    entity.destinationLevel ??
+    entity.level
+  );
 }
 
 const PLAYER_SPRITE_DATA = {
@@ -115,6 +130,20 @@ export function renderEntity(
         py,
       );
     }
+    return;
+  }
+
+  if (entity.type === "portal") {
+    const sheet = getSprite(firePng);
+    surface.drawSprite(
+      sheet,
+      (frame % 2) * TILE_SIZE,
+      0,
+      TILE_SIZE,
+      TILE_SIZE,
+      px,
+      py,
+    );
     return;
   }
 

@@ -1,9 +1,11 @@
 import type { Point } from "./lib/common.ts";
-import type { EntityState, EntityType } from "./entity.ts";
+import type { EntityState } from "./entity.ts";
 import type { LevelState } from "./level.ts";
 
+export type EnemyType = "ortho" | "diag" | "knight" | "slow";
+
 export interface DungeonEnemyConfig {
-  type: Exclude<EntityType, "player">;
+  type: EnemyType;
   p: Point;
 }
 
@@ -67,9 +69,47 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
   },
 ];
 
-export function createPregeneratedDungeon(index: number = 0): LevelState {
-  const safeIndex = Math.abs(index) % PREGENERATED_DUNGEONS.length;
-  const def = PREGENERATED_DUNGEONS[safeIndex];
+export function getDungeonDefinition(
+  indexOrName: number | string = 0,
+): DungeonDefinition {
+  if (typeof indexOrName === "string") {
+    const trimmed = indexOrName.trim();
+    // 1. Case-insensitive match on name
+    const byName = PREGENERATED_DUNGEONS.find(
+      (d) => d.name.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (byName) return byName;
+
+    // 2. Exact match on id string (e.g. "1", "2")
+    const byId = PREGENERATED_DUNGEONS.find((d) => d.id.toString() === trimmed);
+    if (byId) return byId;
+
+    // 3. Match without prefix like "dungeon 1", "level-2"
+    const stripped = trimmed.replace(/^(dungeon|level)[-_\s]*/i, "");
+    if (stripped !== trimmed) {
+      return getDungeonDefinition(stripped);
+    }
+
+    // 4. Numeric index / id
+    const parsed = parseInt(trimmed, 10);
+    if (!isNaN(parsed)) {
+      const byParsedId = PREGENERATED_DUNGEONS.find((d) => d.id === parsed);
+      if (byParsedId) return byParsedId;
+      const safeIndex = Math.abs(parsed) % PREGENERATED_DUNGEONS.length;
+      return PREGENERATED_DUNGEONS[safeIndex];
+    }
+
+    return PREGENERATED_DUNGEONS[0];
+  }
+
+  const safeIndex = Math.abs(indexOrName) % PREGENERATED_DUNGEONS.length;
+  return PREGENERATED_DUNGEONS[safeIndex];
+}
+
+export function createPregeneratedDungeon(
+  indexOrName: number | string = 0,
+): LevelState {
+  const def = getDungeonDefinition(indexOrName);
 
   const entities: EntityState[] = def.enemies.map((enemyConfig) => ({
     type: enemyConfig.type,
@@ -81,5 +121,15 @@ export function createPregeneratedDungeon(index: number = 0): LevelState {
     width: def.width,
     height: def.height,
     entities,
+  };
+}
+
+export function createDungeonForLevel(
+  indexOrName: number | string = 0,
+): { level: LevelState; playerStart: Point } {
+  const def = getDungeonDefinition(indexOrName);
+  return {
+    level: createPregeneratedDungeon(indexOrName),
+    playerStart: { ...def.playerStart },
   };
 }

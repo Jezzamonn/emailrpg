@@ -10,6 +10,11 @@ echo "Exporting assets to $OUT_DIR..."
 # Beach tiles
 aseprite -b assets/beachtiles.aseprite --save-as "$OUT_DIR/beachtiles.png"
 
+# Fire
+aseprite -b assets/fire.aseprite \
+  --sheet "$OUT_DIR/fire.png" \
+  --data "$OUT_DIR/fire.json"
+
 # Character, in sections using different palettes for the different parts
 
 # Skin:
