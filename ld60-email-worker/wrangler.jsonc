@@ -14,6 +14,20 @@
 	"rules": [
 		{ "type": "Text", "globs": ["**/*.hbs", "**/*.html"], "fallthrough": true },
 		{ "type": "Data", "globs": ["**/*.png"], "fallthrough": true }
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "GAME_DO",
+				"class_name": "GameDurableObject"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": ["GameDurableObject"]
+		}
 	]
 	/**
 	 * Smart Placement
