@@ -1,5 +1,9 @@
 import { parseAction } from "./action.ts";
-import { createDungeonForLevel, isLevelUnlocked } from "./dungeon.ts";
+import {
+  createDungeonForLevel,
+  getDungeonDefinition,
+  isLevelUnlocked,
+} from "./dungeon.ts";
 import { stepLevelEnemies } from "./enemy.ts";
 import {
   type ClothesColor,
@@ -35,6 +39,8 @@ export interface PlayerState {
   initialLevel?: LevelState;
   initialP?: Point;
   completedLevels: string[];
+  // Levels the player has entered at least once.
+  enteredLevels?: string[];
 }
 
 export interface GameState {
@@ -55,7 +61,9 @@ export type ResponseTemplate =
   | "intro"
   | "turn"
   | "error"
-  | "customization_error";
+  | "customization_error"
+  | "level_enter"
+  | "level_complete";
 
 export interface ActionResponse {
   games: GameState[];
@@ -106,8 +114,17 @@ export function doPlayerAction(
 
   // Otherwise: Take the next action for that player.
   try {
-    const { messages, games } = takePlayerTurn(game, address, emailContent);
-    return { games, template: "turn", messages, additionalData: {} };
+    const { messages, games, template, level } = takePlayerTurn(
+      game,
+      address,
+      emailContent,
+    );
+    return {
+      games,
+      template: template ?? "turn",
+      messages,
+      additionalData: level != null ? { level } : {},
+    };
   } catch (err) {
     const errorMsg = (err as Error).message;
     return {
@@ -267,11 +284,20 @@ function restartPlayerLevel(game: GameState, address: string): GameState {
   return enterDungeon(newGame, address, "0");
 }
 
+interface TurnResult {
+  messages: string[];
+  games: GameState[];
+  // Overrides the default "turn" template, e.g. for entering or beating a level.
+  template?: ResponseTemplate;
+  // Dungeon name the template is about.
+  level?: string;
+}
+
 function takePlayerTurn(
   game: GameState,
   address: string,
   command: string,
-): { messages: string[]; games: GameState[] } {
+): TurnResult {
   const newGame = structuredClone(game);
   const player = newGame.players[address]!;
 
@@ -380,11 +406,23 @@ function takePlayerTurn(
           "That portal seems closed. Maybe you gotta beat some other levels first.",
         );
       }
-      const nextGame =
-        targetLevelStr.toLowerCase() === "hub"
-          ? placePlayerInHub(newGame, address)
-          : enterDungeon(newGame, address, targetLevelStr);
+      if (targetLevelStr.toLowerCase() === "hub") {
+        return { messages, games: [placePlayerInHub(newGame, address)] };
+      }
 
+      const nextGame = enterDungeon(newGame, address, targetLevelStr);
+      const dungeonName = getDungeonDefinition(targetLevelStr).name;
+      const nextPlayer = nextGame.players[address]!;
+      nextPlayer.enteredLevels ??= [];
+      if (!nextPlayer.enteredLevels.includes(dungeonName)) {
+        nextPlayer.enteredLevels.push(dungeonName);
+        return {
+          messages,
+          games: [nextGame],
+          template: "level_enter",
+          level: dungeonName,
+        };
+      }
       return { messages, games: [nextGame] };
     }
 
@@ -436,7 +474,12 @@ function takePlayerTurn(
       `You beat ${completedLevelName}! You got the reward for ${completedLevelName}!`,
     );
     const hubGame = placePlayerInHub(newGame, address);
-    return { messages, games: [newGame, hubGame] };
+    return {
+      messages,
+      games: [newGame, hubGame],
+      template: "level_complete",
+      level: getDungeonDefinition(completedLevelName).name,
+    };
   }
 
   return { messages, games: [newGame] };

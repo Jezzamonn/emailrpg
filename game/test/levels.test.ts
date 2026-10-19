@@ -605,7 +605,8 @@ describe("Data-driven game architecture & spec/levels.md", () => {
 
     // Alice moves up 1 and kills the last enemy
     const winRes = doPlayerAction(game, "alice@example.com", "up 1");
-    assert.equal(winRes.template, "turn");
+    assert.equal(winRes.template, "level_complete");
+    assert.equal(winRes.additionalData.level, "rat-and-bat");
     assert.equal(winRes.games.length, 2);
 
     // First game state is the beaten level after squashing
@@ -669,12 +670,19 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     // Once Alice has beaten Rat Cellar, she can enter Bat Belfry
     game.players["alice@example.com"].completedLevels = ["Rat Cellar"];
     const unlockedRes = doPlayerAction(game, "alice@example.com", "down 1");
-    assert.equal(unlockedRes.template, "turn");
+    assert.equal(unlockedRes.template, "level_enter");
+    assert.equal(unlockedRes.additionalData.level, "snail");
     assert.ok(lastGame(unlockedRes).players["alice@example.com"].currentLevel);
     assert.equal(
       lastGame(unlockedRes).players["alice@example.com"].currentLevel?.name,
       createPregeneratedDungeon("Bat Belfry").name,
     );
+
+    // Entering the same level again is just a regular turn
+    const exitGame = lastGame(doPlayerAction(lastGame(unlockedRes), "alice@example.com", "exit"));
+    setPlayerPos(exitGame, "alice@example.com", 10, 2);
+    const reenterRes = doPlayerAction(exitGame, "alice@example.com", "down 1");
+    assert.equal(reenterRes.template, "turn");
   });
 
   it("renders locked level portals with small fire and unlocked level portals with regular fire", () => {

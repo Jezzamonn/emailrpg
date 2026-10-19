@@ -5,6 +5,14 @@ import introTemplateSource from "./templates/intro.html";
 import turnTemplateSource from "./templates/turn.html";
 import errorTemplateSource from "./templates/error.html";
 import customizationErrorTemplateSource from "./templates/customization-error.html";
+import ratAndBatEnterSource from "./templates/levels/rat-and-bat/enter.html";
+import ratAndBatCompleteSource from "./templates/levels/rat-and-bat/complete.html";
+import snailEnterSource from "./templates/levels/snail/enter.html";
+import snailCompleteSource from "./templates/levels/snail/complete.html";
+import horsiesEnterSource from "./templates/levels/horsies/enter.html";
+import horsiesCompleteSource from "./templates/levels/horsies/complete.html";
+import everyoneEnterSource from "./templates/levels/everyone/enter.html";
+import everyoneCompleteSource from "./templates/levels/everyone/complete.html";
 
 export type ImageIdAndBytes = Record<string, Uint8Array>;
 
@@ -27,6 +35,11 @@ export interface ErrorTemplateContext {
 }
 
 export type CustomizationErrorTemplateContext = Record<string, string>;
+
+export interface LevelTemplateContext {
+  images: ImageIdAndBytes;
+  messages: string[];
+}
 
 function resolvePath(
   path: hbs.AST.PathExpression,
@@ -134,6 +147,32 @@ export const customizationErrorTemplate = compileTemplate<CustomizationErrorTemp
   customizationErrorTemplateSource,
 );
 
+// Per-level templates, keyed by dungeon name (see PREGENERATED_DUNGEONS).
+const levelTemplates: Record<
+  string,
+  {
+    enter: (context?: LevelTemplateContext) => string;
+    complete: (context?: LevelTemplateContext) => string;
+  }
+> = {
+  "rat-and-bat": {
+    enter: compileTemplate(ratAndBatEnterSource),
+    complete: compileTemplate(ratAndBatCompleteSource),
+  },
+  snail: {
+    enter: compileTemplate(snailEnterSource),
+    complete: compileTemplate(snailCompleteSource),
+  },
+  horsies: {
+    enter: compileTemplate(horsiesEnterSource),
+    complete: compileTemplate(horsiesCompleteSource),
+  },
+  everyone: {
+    enter: compileTemplate(everyoneEnterSource),
+    complete: compileTemplate(everyoneCompleteSource),
+  },
+};
+
 export function renderWelcomeEmail(context: WelcomeTemplateContext = {}): string {
   return welcomeTemplate(context).trim();
 }
@@ -144,6 +183,21 @@ export function renderIntroEmail(context: IntroTemplateContext): string {
 
 export function renderTurnEmail(context: TurnTemplateContext): string {
   return turnTemplate(context).trim();
+}
+
+// Levels without their own template fall back to the regular turn email.
+export function renderLevelEnterEmail(
+  level: string,
+  context: LevelTemplateContext,
+): string {
+  return (levelTemplates[level]?.enter ?? turnTemplate)(context).trim();
+}
+
+export function renderLevelCompleteEmail(
+  level: string,
+  context: LevelTemplateContext,
+): string {
+  return (levelTemplates[level]?.complete ?? turnTemplate)(context).trim();
 }
 
 export function renderErrorEmail(context: ErrorTemplateContext): string {

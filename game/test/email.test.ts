@@ -6,6 +6,8 @@ import {
   renderWelcomeEmail,
   renderIntroEmail,
   renderTurnEmail,
+  renderLevelEnterEmail,
+  renderLevelCompleteEmail,
   renderErrorEmail,
   renderCustomizationErrorEmail,
   htmlToPlainText,
@@ -43,6 +45,32 @@ describe("Handlebars Email Templating", () => {
     assert.match(html, /You squash an enemy!/);
     assert.match(html, /<img src="cid:game_view"/);
     assert.match(html, /Pretty cool right/);
+  });
+
+  it("renders a different enter and complete email template for each level", () => {
+    const levels = ["rat-and-bat", "snail", "horsies", "everyone"];
+    const enters = levels.map((level) => renderLevelEnterEmail(level, { images: {}, messages: [] }));
+    const completes = levels.map((level) =>
+      renderLevelCompleteEmail(level, {
+        images: { hub_view: new Uint8Array() },
+        messages: ["You beat it!"],
+      }),
+    );
+    assert.equal(new Set(enters).size, levels.length);
+    assert.equal(new Set(completes).size, levels.length);
+    for (const html of [...enters, ...completes]) {
+      assert.match(html, /<img src="cid:game_view"/);
+    }
+    for (const html of completes) {
+      assert.match(html, /You beat it!/);
+      assert.match(html, /<img src="cid:hub_view"/);
+    }
+
+    // Unknown levels fall back to the turn template
+    assert.match(
+      renderLevelEnterEmail("unknown", { images: {}, messages: [] }),
+      /You go ahead and do that thing/,
+    );
   });
 
   it("renders error and customization error email templates", () => {

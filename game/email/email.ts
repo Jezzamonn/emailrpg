@@ -9,6 +9,8 @@ import {
   renderWelcomeEmail,
   renderIntroEmail,
   renderTurnEmail,
+  renderLevelEnterEmail,
+  renderLevelCompleteEmail,
   renderErrorEmail,
   renderCustomizationErrorEmail,
   htmlToPlainText,
@@ -133,6 +135,18 @@ function renderEmailTemplate(
         images["hub_view"] = renderPlayerView(lastGame, address);
       }
       html = renderTurnEmail({ images, messages });
+      break;
+    case "level_enter":
+      images["game_view"] = renderPlayerView(lastGame, address);
+      html = renderLevelEnterEmail(additionalData.level!, { images, messages });
+      break;
+    case "level_complete":
+      images["game_view"] = renderPlayerView(games[0]!, address);
+      images["hub_view"] = renderPlayerView(lastGame, address);
+      html = renderLevelCompleteEmail(additionalData.level!, {
+        images,
+        messages,
+      });
       break;
     case "error":
       images["game_view"] = renderPlayerView(lastGame, address);
