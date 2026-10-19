@@ -4,7 +4,7 @@ import {
   type ActionResponse,
   type GameState,
 } from "../game.ts";
-import { renderLevelToGif, renderAppearancesToGif } from "../lib/gif.ts";
+import { renderLevelToGif, renderAppearanceToGif } from "../lib/gif.ts";
 import {
   renderWelcomeEmail,
   renderIntroEmail,
@@ -150,43 +150,32 @@ function renderEmailTemplate(
 }
 
 export function renderCustomizationImages(): ImageIdAndBytes {
-  const skinToneGif = renderAppearancesToGif([
-    { skinColor: "light", hairType: "short", hairColor: "brown", clothesColor: "blue" },
-    { skinColor: "medium", hairType: "short", hairColor: "brown", clothesColor: "blue" },
-    { skinColor: "dark", hairType: "short", hairColor: "brown", clothesColor: "blue" },
-  ]);
-
-  const hairTypeGif = renderAppearancesToGif([
-    { skinColor: "light", hairType: "short", hairColor: "brown", clothesColor: "blue" },
-    { skinColor: "light", hairType: "ponytail", hairColor: "brown", clothesColor: "blue" },
-    { skinColor: "light", hairType: "bald", hairColor: "brown", clothesColor: "blue" },
-  ]);
-
-  const hairColorGif = renderAppearancesToGif([
-    { skinColor: "light", hairType: "short", hairColor: "blonde", clothesColor: "blue" },
-    { skinColor: "light", hairType: "short", hairColor: "brown", clothesColor: "blue" },
-    { skinColor: "light", hairType: "short", hairColor: "black", clothesColor: "blue" },
-  ]);
-
-  const clothesColorGif = renderAppearancesToGif([
-    { skinColor: "light", hairType: "short", hairColor: "brown", clothesColor: "red" },
-    { skinColor: "light", hairType: "short", hairColor: "brown", clothesColor: "blue" },
-    { skinColor: "light", hairType: "short", hairColor: "brown", clothesColor: "green" },
-  ]);
-
-  const images: ImageIdAndBytes = {
-    skin_tone: skinToneGif,
-    hair_type: hairTypeGif,
-    hair_color: hairColorGif,
-    clothes_color: clothesColorGif,
+  return {
+    short_brown_hair_light_skin_green_clothes: renderAppearanceToGif({
+      hairType: "short",
+      hairColor: "brown",
+      skinColor: "light",
+      clothesColor: "green",
+    }),
+    blonde_ponytail_medium_skin_blue_clothes: renderAppearanceToGif({
+      hairType: "ponytail",
+      hairColor: "blonde",
+      skinColor: "medium",
+      clothesColor: "blue",
+    }),
+    bald_dark_skin_red_clothes: renderAppearanceToGif({
+      hairType: "bald",
+      hairColor: "brown",
+      skinColor: "dark",
+      clothesColor: "red",
+    }),
+    black_hair_medium_skin_green_clothes: renderAppearanceToGif({
+      hairType: "short",
+      hairColor: "black",
+      skinColor: "medium",
+      clothesColor: "green",
+    }),
   };
-
-  Object.defineProperty(images, "skin_tones", { value: skinToneGif, enumerable: false });
-  Object.defineProperty(images, "hair_types", { value: hairTypeGif, enumerable: false });
-  Object.defineProperty(images, "hair_colors", { value: hairColorGif, enumerable: false });
-  Object.defineProperty(images, "clothes_colors", { value: clothesColorGif, enumerable: false });
-
-  return images;
 }
 
 function renderPlayerView(game: GameState, address: string): Uint8Array {

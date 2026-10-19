@@ -16,18 +16,14 @@ describe("Handlebars Email Templating", () => {
     const html = renderWelcomeEmail();
     assert.match(html, /WELCOME to/);
     assert.match(html, /What do you look like/);
-    assert.match(html, /Skin tone.*\(in a row\)/i);
-    assert.match(html, /Hair type/);
-    assert.match(html, /Hair color.*not needed if ya bald!/i);
-    assert.match(html, /Clothes color/);
-    assert.match(html, /cid:skin_tone/);
-    assert.match(html, /cid:hair_type/);
-    assert.match(html, /cid:hair_color/);
-    assert.match(html, /cid:clothes_color/);
-    assert.match(html, /light, medium, dark/);
-    assert.match(html, /short, ponytail, bald/);
-    assert.match(html, /blonde, brown, black/);
-    assert.match(html, /red, blue, green/);
+    assert.match(html, /cid:short_brown_hair_light_skin_green_clothes/);
+    assert.match(html, /cid:blonde_ponytail_medium_skin_blue_clothes/);
+    assert.match(html, /cid:bald_dark_skin_red_clothes/);
+    assert.match(html, /cid:black_hair_medium_skin_green_clothes/);
+    assert.match(html, /short, ponytail or bald/);
+    assert.match(html, /blonde, brown or black/);
+    assert.match(html, /light medium dark/);
+    assert.match(html, /red green or blue/);
   });
 
   it("renders intro email template with player info and game board image", () => {
@@ -61,7 +57,7 @@ describe("Handlebars Email Templating", () => {
     const custErrorHtml = renderCustomizationErrorEmail({
       error: "Could not understand what you look like!",
     });
-    assert.match(custErrorHtml, /color:\s*#e03e2d/);
+    assert.match(custErrorHtml, /Sorry, gotta ask you to spell things out for me/);
     assert.match(custErrorHtml, /Could not understand what you look like!/);
     assert.equal(custErrorHtml.includes("cid:game_view"), false);
   });
@@ -127,12 +123,12 @@ describe("Handlebars Email Templating", () => {
     assert.equal(game.players[userEmail].state, "awaiting_customization");
     assert.match(res1.response.html, /WELCOME to/);
     assert.match(res1.response.text, /WELCOME to/);
-    assert.match(res1.response.text, /Skin tone \(in a row\): light, medium, dark/);
-    assert.match(res1.response.text, /Hair color: blonde, brown, black \(not needed if ya bald!\)/);
-    assert.ok(res1.response.images["skin_tone"]);
-    assert.ok(res1.response.images["hair_type"]);
-    assert.ok(res1.response.images["hair_color"]);
-    assert.ok(res1.response.images["clothes_color"]);
+    assert.match(res1.response.text, /Short brown hair, light skin, green clothes\?/);
+    assert.match(res1.response.text, /Blonde ponytail, medium skin, blue clothes\?/);
+    assert.ok(res1.response.images["short_brown_hair_light_skin_green_clothes"]);
+    assert.ok(res1.response.images["blonde_ponytail_medium_skin_blue_clothes"]);
+    assert.ok(res1.response.images["bald_dark_skin_red_clothes"]);
+    assert.ok(res1.response.images["black_hair_medium_skin_green_clothes"]);
     assert.equal(/<[^>]+>/.test(res1.response.text), false);
 
     // Phase 2a: Incomplete customization -> customization_error without level image
@@ -142,7 +138,7 @@ describe("Handlebars Email Templating", () => {
     });
     game = res2Err.game;
     assert.equal(game.players[userEmail].state, "awaiting_customization");
-    assert.match(res2Err.response.html, /Could not understand what you look like/);
+    assert.match(res2Err.response.html, /Sorry, gotta ask you to spell things out for me/);
     assert.deepEqual(res2Err.response.images, {});
 
     // Phase 2b: Complete character creation

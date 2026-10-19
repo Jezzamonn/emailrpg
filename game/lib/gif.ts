@@ -75,6 +75,16 @@ import { renderEntity, TILE_SIZE, type PlayerAppearance } from "../entity.ts";
 import { seededRandom } from "./util.ts";
 
 /**
+ * Helper to render a single player appearance into an animated GIF.
+ */
+export function renderAppearanceToGif(
+  appearance: PlayerAppearance,
+  options: GifOptions = {},
+): Uint8Array {
+  return renderAppearancesToGif([appearance], options);
+}
+
+/**
  * Helper to render an array of player appearances side-by-side into an animated GIF.
  */
 export function renderAppearancesToGif(
