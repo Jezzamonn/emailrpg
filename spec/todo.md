@@ -2,10 +2,10 @@ Need to do
 
 - [x] How to move
 - [x] 3 levels, increasing challenge?
-- [ ] Writing for the three levels
+- [x] Writing for the three levels
 - [x] Graphics for enemies
 - [x] Rewrite / improve character selection stuff
-- [ ] Rewrite anything with an AI placeholder
+- [x] Rewrite anything with an AI placeholder
 
 Important
 
