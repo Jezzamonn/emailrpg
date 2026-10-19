@@ -38,51 +38,6 @@ export function levelHasEnemies(level: LevelState): boolean {
   return level.entities.some((e) => entityGroupOf(e.type) === "enemy");
 }
 
-// export function renderLevelText(
-//   level: LevelState,
-//   forPlayerCharOrId?: string,
-// ): string {
-//   let output = "";
-//   const labelWidth = 3;
-
-//   // Render Letter chess style
-//   output += " ".repeat(labelWidth);
-//   for (let x = 0; x < level.width; x++) {
-//     output += ` ${String.fromCharCode(65 + x)}`;
-//   }
-//   output += "\n";
-
-//   for (let y = 0; y < level.height; y++) {
-//     const row = (y + 1).toString().padStart(labelWidth, " ");
-//     output += `${row}`;
-//     for (let x = 0; x < level.width; x++) {
-//       const entitiesOnTile = levelEntitiesAt(level, { x, y });
-//       if (entitiesOnTile.length === 0) {
-//         output += " .";
-//       } else {
-//         let picked: EntityState;
-//         if (
-//           forPlayerCharOrId &&
-//           entitiesOnTile.some(
-//             (e) => e.playerId === forPlayerCharOrId || e.char === forPlayerCharOrId,
-//           )
-//         ) {
-//           picked = entitiesOnTile.find(
-//             (e) => e.playerId === forPlayerCharOrId || e.char === forPlayerCharOrId,
-//           )!;
-//         } else {
-//           picked =
-//             entitiesOnTile.find((e) => e.type === "player") ??
-//             entitiesOnTile[0];
-//         }
-//         output += picked.char;
-//       }
-//     }
-//     output += "\n";
-//   }
-//   return output;
-// }
-
 export interface LevelRenderOptions {
   showCoordinates?: boolean;
   coordinateSides?: "all" | "bottom-left";
