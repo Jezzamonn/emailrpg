@@ -34,7 +34,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     assert.equal(res1.template, "newplayer");
     game = res1.game;
     assert.equal(game.players["alice@example.com"].state, "awaiting_customization");
-    assert.equal(game.hubLevel.entities.length, 0);
+    assert.equal(game.hubLevel.entities.filter((e) => e.type === "player").length, 0);
 
     const res2 = doPlayerAction(game, "alice@example.com", "Ponytail, blonde, dark skin, green");
     assert.equal(res2.template, "intro");
@@ -59,7 +59,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     assert.match(badRes.additionalData.error, /skin color/);
     assert.match(badRes.additionalData.error, /clothes color/);
     assert.equal(badRes.game.players["alice@example.com"].state, "awaiting_customization");
-    assert.equal(badRes.game.hubLevel.entities.length, 0);
+    assert.equal(badRes.game.hubLevel.entities.filter((e) => e.type === "player").length, 0);
 
     const baldRes = doPlayerAction(badRes.game, "alice@example.com", "bald, light skin, red clothes");
     assert.equal(baldRes.template, "intro");
@@ -86,10 +86,12 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     assert.deepEqual(restored, game);
   });
 
-  it("shared hub world has beach background tiles and no enemies", () => {
+  it("shared hub world has beach background tiles, portals, and no enemies", () => {
     const game = createGame();
     assert.equal(levelHasEnemies(game.hubLevel), false);
-    assert.equal(game.hubLevel.entities.length, 0);
+    assert.equal(game.hubLevel.entities.filter((e) => e.type === "player").length, 0);
+    assert.ok(game.hubLevel.entities.length > 0);
+    assert.ok(game.hubLevel.entities.every((e) => e.type === "portal"));
     assert.ok(game.hubLevel.backgroundTiles);
     assert.equal(game.hubLevel.backgroundTiles.length, 11);
     assert.equal(game.hubLevel.backgroundTiles[0].length, 15);
@@ -358,5 +360,25 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     const hubPlayerEntity = res.game.hubLevel.entities.find((e) => e.playerId === alice.email)!;
     assert.deepEqual(hubPlayerEntity.p, updatedAlice.p);
     assert.ok(res.messages.some((m) => m.includes("wake up back on the beach")));
+  });
+
+  it("moving into a default beach portal transports player to the linked dungeon", () => {
+    let game = createGame();
+    game = joinGame(game, "alice@example.com");
+
+    // Move Alice next to the Rat Cellar portal at (4, 3)
+    setPlayerPos(game, "alice@example.com", 4, 2);
+
+    const res = doPlayerAction(game, "alice@example.com", "down 1");
+    const alice = res.game.players["alice@example.com"];
+
+    assert.ok(alice.currentLevel);
+    assert.equal(alice.currentLevel.width, 7);
+    assert.equal(alice.currentLevel.height, 7);
+    assert.deepEqual(alice.p, { x: 3, y: 5 });
+    assert.equal(
+      res.game.hubLevel.entities.some((e) => e.playerId === "alice@example.com"),
+      false,
+    );
   });
 });

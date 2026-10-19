@@ -150,6 +150,33 @@ DDDWWWWWWWWDDDD
       }),
     );
 
+  level.entities = [
+    {
+      type: "portal",
+      p: { x: 4, y: 3 },
+      targetLevel: "Rat Cellar",
+      portalLevel: "Rat Cellar",
+    },
+    {
+      type: "portal",
+      p: { x: 10, y: 3 },
+      targetLevel: "Bat Belfry",
+      portalLevel: "Bat Belfry",
+    },
+    {
+      type: "portal",
+      p: { x: 4, y: 7 },
+      targetLevel: "Wolf Warrens",
+      portalLevel: "Wolf Warrens",
+    },
+    {
+      type: "portal",
+      p: { x: 10, y: 7 },
+      targetLevel: "The Gauntlet",
+      portalLevel: "The Gauntlet",
+    },
+  ];
+
   return level;
 }
 

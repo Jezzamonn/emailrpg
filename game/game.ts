@@ -103,11 +103,12 @@ export function doPlayerAction(
     const messages = takePlayerTurn(newGame, player, emailContent);
     return { game: newGame, template: "turn", messages, additionalData: {} };
   } catch (err) {
+    const errorMsg = (err as Error).message;
     return {
       game: newGame,
       template: "error",
-      messages: [],
-      additionalData: { error: (err as Error).message },
+      messages: [errorMsg],
+      additionalData: { error: errorMsg },
     };
   }
 }
