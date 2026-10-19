@@ -142,7 +142,7 @@ function renderUI() {
     replyInput.placeholder = "Describe your look (e.g. 'ponytail, blonde hair, blue clothes')...";
     replySubmitBtn.textContent = "Send Customization";
   } else {
-    replyInput.placeholder = "Enter command (e.g. up, down 2, left 3, wait)...";
+    replyInput.placeholder = "Enter command (e.g. up, down 2, a1, m10, wait)...";
     replySubmitBtn.textContent = "Send Command";
   }
 

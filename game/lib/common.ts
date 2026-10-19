@@ -106,3 +106,41 @@ export const Dirs = {
     }
   },
 };
+
+export function getColumnLetter(colIndex: number): string {
+  let s = "";
+  let n = colIndex;
+  while (n >= 0) {
+    s = String.fromCharCode(97 + (n % 26)) + s;
+    n = Math.floor(n / 26) - 1;
+  }
+  return s;
+}
+
+export function parseColumnLetters(letters: string): number {
+  let n = 0;
+  const lower = letters.toLowerCase();
+  for (let i = 0; i < lower.length; i++) {
+    const code = lower.charCodeAt(i) - 97; // a=0, b=1, ...
+    if (code < 0 || code > 25) {
+      return -1;
+    }
+    n = n * 26 + (code + 1);
+  }
+  return n - 1;
+}
+
+export function coordToPoint(
+  col: string,
+  row: number,
+  levelHeight: number,
+): Point {
+  return {
+    x: parseColumnLetters(col),
+    y: levelHeight - row,
+  };
+}
+
+export function pointToCoord(p: Point, levelHeight: number): string {
+  return `${getColumnLetter(p.x)}${levelHeight - p.y}`;
+}

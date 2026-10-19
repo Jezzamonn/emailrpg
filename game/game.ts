@@ -15,7 +15,7 @@ import {
   levelInBound,
   type LevelState,
 } from "./level.ts";
-import { Dirs, type Point, Points } from "./lib/common.ts";
+import { Dirs, type Point, Points, parseColumnLetters } from "./lib/common.ts";
 
 export type UserState = "awaiting_customization" | "active";
 
@@ -135,21 +135,42 @@ function takePlayerTurn(
   }
 
   const level = getPlayerLevel(game, player);
-  if (!action.isValid(levelHasEnemies(level))) {
+  if (action.type === "move" && !action.isValid(levelHasEnemies(level))) {
     return ["Whoa there! With enemies around you can only move 2 spaces at a time."];
   }
 
   const messages: string[] = [];
 
+  let target: Point | undefined;
   if (action.type === "move") {
-    const target = Points.add(
+    target = Points.add(
       player.p,
       Points.scale(Dirs.toPoint(action.dir!), action.dist),
     );
     if (!levelInBound(level, target)) {
       return ["You can't go that way, that's the edge of the world!"];
     }
+  } else if (action.type === "coord") {
+    const colIndex = parseColumnLetters(action.coord!.col);
+    const y = level.height - action.coord!.row;
+    target = { x: colIndex, y };
 
+    if (!levelInBound(level, target)) {
+      return ["You can't go that way, that's the edge of the world!"];
+    }
+
+    if (levelHasEnemies(level)) {
+      const dx = target.x - player.p.x;
+      const dy = target.y - player.p.y;
+      const isCardinal = (dx === 0 && dy !== 0) || (dy === 0 && dx !== 0);
+      const dist = Math.max(Math.abs(dx), Math.abs(dy));
+      if (!isCardinal || dist < 1 || dist > 2) {
+        return ["Whoa there! With enemies around you can only move 2 spaces at a time."];
+      }
+    }
+  }
+
+  if (target != null) {
     // Moving onto an enemy kills it.
     const killed = levelEntitiesAt(level, target).filter(
       (e) => entityGroupOf(e.type) === "enemy",

@@ -1,4 +1,4 @@
-import type { Point } from "./lib/common.ts";
+import { type Point, getColumnLetter } from "./lib/common.ts";
 import { type SpriteSheet, Surface, Colors, rgba } from "./lib/surface.ts";
 import {
   TILE_SIZE,
@@ -98,16 +98,6 @@ export interface LevelState {
   height: number;
   entities: EntityState[];
   backgroundTiles?: BeachTile[][];
-}
-
-function getColumnLetter(colIndex: number): string {
-  let s = "";
-  let n = colIndex;
-  while (n >= 0) {
-    s = String.fromCharCode(97 + (n % 26)) + s;
-    n = Math.floor(n / 26) - 1;
-  }
-  return s;
 }
 
 export function createLevel(width: number, height: number): LevelState {

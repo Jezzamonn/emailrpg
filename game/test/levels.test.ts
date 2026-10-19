@@ -131,5 +131,96 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     assert.equal(parseAction("left").dist, 1);
     assert.throws(() => parseAction("k up 2"));
     assert.throws(() => parseAction(""));
+
+    // Coordinate commands
+    const c1 = parseAction("a1");
+    assert.equal(c1.type, "coord");
+    assert.deepEqual(c1.coord, { col: "a", row: 1 });
+
+    const c2 = parseAction("l19");
+    assert.equal(c2.type, "coord");
+    assert.deepEqual(c2.coord, { col: "l", row: 19 });
+
+    const c3 = parseAction("m10");
+    assert.equal(c3.type, "coord");
+    assert.deepEqual(c3.coord, { col: "m", row: 10 });
+
+    const c4 = parseAction("M10");
+    assert.equal(c4.type, "coord");
+    assert.deepEqual(c4.coord, { col: "a".replace("a", "m"), row: 10 });
+
+    const c5 = parseAction("m 10");
+    assert.equal(c5.type, "coord");
+    assert.deepEqual(c5.coord, { col: "m", row: 10 });
+  });
+
+  it("allows moving to specific coordinates in the hub world", () => {
+    let game = joinGame(createGame(), "alice@example.com");
+    setPlayerPos(game, "alice@example.com", 2, 2);
+
+    // Hub is 15x11. Bottom-left is a1 (x=0, y=10).
+    const resA1 = doPlayerAction(game, "alice@example.com", "a1");
+    assert.equal(resA1.template, "turn");
+    assert.deepEqual(resA1.messages, []);
+    assert.deepEqual(resA1.game.players["alice@example.com"].p, { x: 0, y: 10 });
+
+    // Move to m10: col m=12, row 10 -> y = 11 - 10 = 1
+    const resM10 = doPlayerAction(resA1.game, "alice@example.com", "m10");
+    assert.deepEqual(resM10.messages, []);
+    assert.deepEqual(resM10.game.players["alice@example.com"].p, { x: 12, y: 1 });
+
+    // Out of bounds coordinate command is rejected
+    const resOob = doPlayerAction(resM10.game, "alice@example.com", "z99");
+    assert.equal(resOob.messages.length, 1);
+    assert.equal(resOob.messages[0], "You can't go that way, that's the edge of the world!");
+    assert.deepEqual(resOob.game.players["alice@example.com"].p, { x: 12, y: 1 });
+  });
+
+  it("restricts coordinate commands when enemies are present in the level", () => {
+    let game = joinGame(createGame(), "alice@example.com");
+    const alice = game.players["alice@example.com"];
+    alice.currentLevel = createPregeneratedDungeon(0);
+    // Dungeon 0 is 7x7 (height = 7).
+    // Player at (3, 5). In 7-high board: col 3 is 'd', row is 7 - 5 = 2 (d2).
+    alice.currentLevel.entities.push({ type: "player", p: { x: 3, y: 5 }, playerId: alice.email });
+    alice.p = { x: 3, y: 5 };
+
+    // Moving more than 2 spaces away (e.g. d5, which is y=2, 3 spaces north) should not work
+    const illegalDist = doPlayerAction(game, "alice@example.com", "d5");
+    assert.deepEqual(illegalDist.game.players["alice@example.com"].p, { x: 3, y: 5 });
+    assert.equal(illegalDist.messages[0], "Whoa there! With enemies around you can only move 2 spaces at a time.");
+
+    // Moving diagonally (e.g. e3, which is dx=1, dy=-1) should not work
+    const illegalDiag = doPlayerAction(game, "alice@example.com", "e3");
+    assert.deepEqual(illegalDiag.game.players["alice@example.com"].p, { x: 3, y: 5 });
+    assert.equal(illegalDiag.messages[0], "Whoa there! With enemies around you can only move 2 spaces at a time.");
+
+    // Moving to the same tile (distance 0) should not work
+    const illegalSame = doPlayerAction(game, "alice@example.com", "d2");
+    assert.deepEqual(illegalSame.game.players["alice@example.com"].p, { x: 3, y: 5 });
+    assert.equal(illegalSame.messages[0], "Whoa there! With enemies around you can only move 2 spaces at a time.");
+
+    // Moving 1 space in cardinal direction (d3 is y=4, 1 space north) works!
+    const valid1 = doPlayerAction(game, "alice@example.com", "d3");
+    assert.deepEqual(valid1.game.players["alice@example.com"].p, { x: 3, y: 4 });
+
+    // Moving 2 spaces in cardinal direction (b3 is x=1, y=4, 2 spaces west) works!
+    const valid2 = doPlayerAction(valid1.game, "alice@example.com", "b3");
+    assert.deepEqual(valid2.game.players["alice@example.com"].p, { x: 1, y: 4 });
+  });
+
+  it("squashes enemies when moving to their coordinate", () => {
+    let game = joinGame(createGame(), "alice@example.com");
+    const alice = game.players["alice@example.com"];
+    alice.currentLevel = createPregeneratedDungeon(0);
+    // Dungeon 0 is 7x7. Place player at (3, 5) (d2).
+    alice.p = { x: 3, y: 5 };
+    alice.currentLevel.entities.push({ type: "player", p: { x: 3, y: 5 }, playerId: alice.email });
+    // Place enemy at (3, 4) (d3, 1 square north).
+    alice.currentLevel.entities.push({ type: "basic", p: { x: 3, y: 4 } });
+
+    const res = doPlayerAction(game, "alice@example.com", "d3");
+    assert.deepEqual(res.game.players["alice@example.com"].p, { x: 3, y: 4 });
+    assert.ok(res.messages.includes("You squash an enemy!"));
   });
 });

@@ -19,3 +19,14 @@ up down left right, north east south west are all allowed as directions. The num
 There's also the wait command where the character doesn't move:
 
 wait
+
+### Coordinate commands:
+
+Players can also move directly to a specific coordinate:
+
+a1
+l19
+m10
+
+The letter indicates the column (starting from 'a' at the left) and the number indicates the row (starting from '1' at the bottom).
+If the player is unable to move to a location because there are enemies (movement is limited to 2 squares in cardinal directions when enemies are present), the command will not work.
