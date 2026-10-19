@@ -11,6 +11,8 @@ import {
   levelHasEnemies,
   createLevel,
   renderLevel,
+  renderEntity,
+  type EntityType,
   Surface,
   TILE_SIZE,
   Colors,
@@ -305,24 +307,46 @@ describe("Data-driven game architecture & spec/levels.md", () => {
 
     assert.deepEqual(s0.pixels, s1.pixels);
 
-    // Overlapping entities should occupy more red pixels than a single non-shifted entity
+    // Overlapping entities should occupy more sprite pixels than a single non-shifted entity
     const singleLevel = createLevel(5, 5);
     singleLevel.entities = [{ type: "ortho", p: { x: 2, y: 2 } }];
     const sSingle = new Surface(5 * TILE_SIZE, 5 * TILE_SIZE);
     renderLevel(sSingle, singleLevel, 0, { showCoordinates: false });
 
-    const redColor = Colors.Red >>> 0;
+    // Grid tile background colors in dark mode without beach tiles
+    const isBackground = (color: number) => {
+      const c = color >>> 0;
+      return c === 0xff232323 || c === 0xff2d2d2d || c === 0;
+    };
+
     let singleCount = 0;
     for (const p of sSingle.pixels) {
-      if ((p >>> 0) === redColor) singleCount++;
+      if (!isBackground(p)) singleCount++;
     }
 
     let multiCount = 0;
     for (const p of s0.pixels) {
-      if ((p >>> 0) === redColor) multiCount++;
+      if (!isBackground(p)) multiCount++;
     }
 
     assert.ok(multiCount > singleCount);
+  });
+
+  it("renders enemies using exported sprite layers", () => {
+    const enemyTypes: EntityType[] = ["ortho", "diag", "knight", "slow"];
+    for (const type of enemyTypes) {
+      const surface = new Surface(TILE_SIZE, TILE_SIZE);
+      renderEntity(surface, { type, p: { x: 0, y: 0 }, cooldown: 0 }, 0);
+      const nonZeroPixels = surface.pixels.filter((p) => p !== 0).length;
+      assert.ok(nonZeroPixels > 0, `${type} enemy should render sprite pixels`);
+    }
+
+    // slow enemy renders differently when sleeping (cooldown 1 vs 0)
+    const snailActive = new Surface(TILE_SIZE, TILE_SIZE);
+    const snailSleep = new Surface(TILE_SIZE, TILE_SIZE);
+    renderEntity(snailActive, { type: "slow", p: { x: 0, y: 0 }, cooldown: 0 }, 0);
+    renderEntity(snailSleep, { type: "slow", p: { x: 0, y: 0 }, cooldown: 1 }, 0);
+    assert.notDeepEqual(snailActive.pixels, snailSleep.pixels);
   });
 
   it("enemies cannot move into portals, but players can", () => {

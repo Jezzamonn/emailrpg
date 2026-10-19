@@ -14,6 +14,11 @@ import ponytailBlondePng from "../assets/exported/character-ponytail-blonde.png"
 import ponytailBrownPng from "../assets/exported/character-ponytail-brown.png";
 import ponytailBlackPng from "../assets/exported/character-ponytail-black.png";
 import firePng from "../assets/exported/fire.png";
+import enemyRatPng from "../assets/exported/enemy-rat.png";
+import enemyBatPng from "../assets/exported/enemy-bat.png";
+import enemyHorsePng from "../assets/exported/enemy-horse.png";
+import enemySnailPng from "../assets/exported/enemy-snail.png";
+import enemySnailSleepPng from "../assets/exported/enemy-snail-sleep.png";
 
 // Size of a tile in pixels, which is also the size of the player sprites.
 export const TILE_SIZE = 30;
@@ -136,6 +141,31 @@ export function renderEntity(
 
   if (entity.type === "portal") {
     const sheet = getSprite(firePng);
+    surface.drawSprite(
+      sheet,
+      (frame % 2) * TILE_SIZE,
+      0,
+      TILE_SIZE,
+      TILE_SIZE,
+      px,
+      py,
+    );
+    return;
+  }
+
+  let enemySprite: ArrayBuffer | undefined;
+  if (entity.type === "ortho") {
+    enemySprite = enemyRatPng;
+  } else if (entity.type === "diag") {
+    enemySprite = enemyBatPng;
+  } else if (entity.type === "knight") {
+    enemySprite = enemyHorsePng;
+  } else if (entity.type === "slow") {
+    enemySprite = entity.cooldown === 1 ? enemySnailSleepPng : enemySnailPng;
+  }
+
+  if (enemySprite) {
+    const sheet = getSprite(enemySprite);
     surface.drawSprite(
       sheet,
       (frame % 2) * TILE_SIZE,

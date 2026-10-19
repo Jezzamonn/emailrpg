@@ -96,5 +96,11 @@ aseprite -b --layer "ponytail" assets/character.aseprite \
   --filename-format "{title}-{layer}-{frame}" \
   --sheet "$OUT_DIR/character-ponytail-black.png" \
   --data "$OUT_DIR/character-ponytail-black.json"
+# Enemies
+for layer in rat bat horse snail snail-sleep; do
+  aseprite -b --layer "$layer" assets/enemies.aseprite \
+    --sheet "$OUT_DIR/enemy-$layer.png" \
+    --data "$OUT_DIR/enemy-$layer.json"
+done
 
 echo "Done!"
