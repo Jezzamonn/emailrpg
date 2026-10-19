@@ -1,8 +1,14 @@
-{{#each messages}}<p><strong>{{this}}</strong></p>
-{{/each}}<p><img src="cid:game_view" alt="Game Board" style="image-rendering: pixelated;"></p>
-<p><em><span style="color: #590063;">The last rat squeaks its final squeak. A ghostly figure rises from the cellar floor: "THANK YOU! I never forwarded my emails, and I've regretted it every day since. Go on, the next portal awaits..."</span></em></p>
-<p><span style="color: #e67e23;"><em>You are whisked back to the beach.</em></span></p>
-{{#if images.hub_view}}<p><img src="cid:hub_view" alt="Game Board" style="image-rendering: pixelated;"></p>
-{{/if}}{{#if chatMessages}}<p>Recent chat messages:</p>
-{{#each chatMessages}}<p><strong>{{sender}}:</strong> {{message}}</p>
-{{/each}}{{/if}}<p>Where to next?</p>
+<p>{{#each messages}}</p>
+<p><strong>{{this}}</strong></p>
+<p>{{/each}}</p>
+<p><img src="cid:game_view" alt="Game Board" style="image-rendering: pixelated;"></p>
+<p><em><span style="color: #590063;">With the last rat or bat squished, you feel a sigh of relief. YOU've SAVED this spirit!!</span></em></p>
+<p><span style="color: #e67e23;"><i>Back to the main world for you!!</i></span></p>
+<p>{{#if images.hub_view}}</p>
+<p><img src="cid:hub_view" alt="Game Board" style="image-rendering: pixelated;"></p>
+<p>{{/if}}{{#if chatMessages}}</p>
+<p>Recent chat messages:</p>
+<p>{{#each chatMessages}}</p>
+<p><strong>{{sender}}:</strong> {{message}}</p>
+<p>{{/each}}{{/if}}</p>
+<p>Where to next?</p>
