@@ -86,7 +86,7 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
   },
   {
     id: 3,
-    name: "Wolf Warrens",
+    name: "horsies",
     ...parseLevel(`
 🐴🐴⬛
 ⬛🐴🐴
@@ -96,7 +96,7 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
   },
   {
     id: 4,
-    name: "The Gauntlet",
+    name: "everyone",
     ...parseLevel(`
 🐴🐀🦇🐌
 ⬛⬛💤🐴
