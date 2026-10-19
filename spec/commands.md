@@ -53,4 +53,13 @@ exit
 
 When all enemies in a level are killed, the player is shown the level they just beat with information about their reward, and the level is recorded in their list of beaten levels. Replying with anything returns the player to the main beach hub.
 
+### Chat commands:
+
+While in the hub world, players can chat with other players:
+
+say some message
+
+This logs "some message" with a timestamp. Recent messages (within the past 6 hours that haven't already been sent to the player, up to the 10 most recent) are included when sending the state of the overworld.
+
+
 

@@ -7,6 +7,7 @@ import {
 import { renderLevelToGif, renderAppearanceToGif } from "../lib/gif.ts";
 import {
   renderWelcomeEmail,
+  renderCustomizationEmail,
   renderIntroEmail,
   renderTurnEmail,
   renderLevelEnterEmail,
@@ -90,6 +91,7 @@ export function extractReplyText(body: string): string {
 export function handleIncomingEmail(
   game: GameState,
   request: EmailRequest,
+  now?: number,
 ): { game: GameState; response: EmailResponse } {
   // TODO: Check some things about the email? E.g. don't reply to multiple people???
 
@@ -97,7 +99,7 @@ export function handleIncomingEmail(
   const address = request.from.toLowerCase().trim();
   const body = extractReplyText(request.body);
 
-  const action = doPlayerAction(game, address, body);
+  const action = doPlayerAction(game, address, body, now);
 
   const response = renderEmailTemplate(request, address, action);
 
@@ -108,7 +110,7 @@ export function handleIncomingEmail(
 function renderEmailTemplate(
   request: EmailRequest,
   address: string,
-  { games, template, messages, additionalData }: ActionResponse,
+  { games, template, messages, chatMessages, additionalData }: ActionResponse,
 ): EmailResponse {
   const from = "game@emailrpg.com";
   const incomingSubject = request.subject || "";
@@ -122,19 +124,25 @@ function renderEmailTemplate(
   let html: string;
   switch (template) {
     case "newplayer":
-      images = renderCustomizationImages();
       html = renderWelcomeEmail({ images });
+      break;
+    case "customization":
+      images = renderCustomizationImages();
+      html = renderCustomizationEmail({
+        images,
+        name: additionalData.name,
+      });
       break;
     case "intro":
       images["game_view"] = renderPlayerView(lastGame, address);
-      html = renderIntroEmail({ images });
+      html = renderIntroEmail({ images, chatMessages });
       break;
     case "turn":
       images["game_view"] = renderPlayerView(games[0]!, address);
       if (games.length > 1) {
         images["hub_view"] = renderPlayerView(lastGame, address);
       }
-      html = renderTurnEmail({ images, messages });
+      html = renderTurnEmail({ images, messages, chatMessages });
       break;
     case "level_enter":
       images["game_view"] = renderPlayerView(lastGame, address);
@@ -146,6 +154,7 @@ function renderEmailTemplate(
       html = renderLevelCompleteEmail(additionalData.level!, {
         images,
         messages,
+        chatMessages,
       });
       break;
     case "error":

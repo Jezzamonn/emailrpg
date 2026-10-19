@@ -2,7 +2,7 @@ import { EmailMessage } from 'cloudflare:email';
 import { DurableObject } from 'cloudflare:workers';
 import { createMimeMessage } from 'mimetext';
 import PostalMime from 'postal-mime';
-import { createGame, type GameState, type PlayerState } from '../../game/game.ts';
+import { createGame, type ChatMessage, type GameState, type PlayerState } from '../../game/game.ts';
 import type { LevelState } from '../../game/level.ts';
 import { handleIncomingEmail } from '../../game/email/email.ts';
 import { htmlToPlainText } from '../../game/email/template.ts';
@@ -21,16 +21,18 @@ export class GameDurableObject extends DurableObject<Env> {
 		if (!hubLevel) {
 			return createGame();
 		}
+		const chatMessages = (await this.ctx.storage.get<ChatMessage[]>('chatMessages')) ?? [];
 		const playerEntries = await this.ctx.storage.list<PlayerState>({ prefix: 'player:' });
 		const players: Record<string, PlayerState> = {};
 		for (const [key, player] of playerEntries) {
 			players[key.slice('player:'.length)] = player;
 		}
-		return { hubLevel, players };
+		return { hubLevel, players, chatMessages };
 	}
 
 	async saveGame(game: GameState): Promise<void> {
 		await this.ctx.storage.put('hubLevel', game.hubLevel);
+		await this.ctx.storage.put('chatMessages', game.chatMessages ?? []);
 		const playerEntries = Object.entries(game.players);
 		for (let i = 0; i < playerEntries.length; i += 128) {
 			const batch: Record<string, PlayerState> = {};

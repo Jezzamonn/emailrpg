@@ -1,6 +1,7 @@
 import Handlebars from "handlebars";
 import { convert } from "html-to-text";
 import welcomeTemplateSource from "./templates/welcome.html";
+import customizationTemplateSource from "./templates/customization.html";
 import introTemplateSource from "./templates/intro.html";
 import turnTemplateSource from "./templates/turn.html";
 import errorTemplateSource from "./templates/error.html";
@@ -13,6 +14,7 @@ import horsiesEnterSource from "./templates/levels/horsies/enter.html";
 import horsiesCompleteSource from "./templates/levels/horsies/complete.html";
 import everyoneEnterSource from "./templates/levels/everyone/enter.html";
 import everyoneCompleteSource from "./templates/levels/everyone/complete.html";
+import type { ChatMessage } from "../game.ts";
 
 export type ImageIdAndBytes = Record<string, Uint8Array>;
 
@@ -20,13 +22,20 @@ export interface WelcomeTemplateContext {
   images?: ImageIdAndBytes;
 }
 
+export interface CustomizationTemplateContext {
+  images?: ImageIdAndBytes;
+  name?: string;
+}
+
 export interface IntroTemplateContext {
   images: ImageIdAndBytes;
+  chatMessages?: ChatMessage[];
 }
 
 export interface TurnTemplateContext {
   images: ImageIdAndBytes;
   messages: string[];
+  chatMessages?: ChatMessage[];
 }
 
 export interface ErrorTemplateContext {
@@ -39,6 +48,7 @@ export type CustomizationErrorTemplateContext = Record<string, string>;
 export interface LevelTemplateContext {
   images: ImageIdAndBytes;
   messages: string[];
+  chatMessages?: ChatMessage[];
 }
 
 function resolvePath(
@@ -140,6 +150,9 @@ function compileTemplate<T = any>(source: string): (context?: T) => string {
 }
 
 export const welcomeTemplate = compileTemplate<WelcomeTemplateContext>(welcomeTemplateSource);
+export const customizationTemplate = compileTemplate<CustomizationTemplateContext>(
+  customizationTemplateSource,
+);
 export const introTemplate = compileTemplate<IntroTemplateContext>(introTemplateSource);
 export const turnTemplate = compileTemplate<TurnTemplateContext>(turnTemplateSource);
 export const errorTemplate = compileTemplate<ErrorTemplateContext>(errorTemplateSource);
@@ -175,6 +188,12 @@ const levelTemplates: Record<
 
 export function renderWelcomeEmail(context: WelcomeTemplateContext = {}): string {
   return welcomeTemplate(context).trim();
+}
+
+export function renderCustomizationEmail(
+  context: CustomizationTemplateContext = {},
+): string {
+  return customizationTemplate(context).trim();
 }
 
 export function renderIntroEmail(context: IntroTemplateContext): string {

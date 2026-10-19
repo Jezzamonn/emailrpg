@@ -25,12 +25,20 @@ import { Dirs, type Point, Points, parseColumnLetters } from "./lib/common.ts";
 import { choose } from "./lib/util.ts";
 
 export type UserState =
+  | "awaiting_name"
   | "awaiting_customization"
   | "active"
   | "dead";
 
+export interface ChatMessage {
+  sender: string;
+  message: string;
+  timestamp: number;
+}
+
 export interface PlayerState {
   email: string;
+  name?: string;
   state: UserState;
   appearance?: PlayerAppearance;
   p: Point;
@@ -41,23 +49,29 @@ export interface PlayerState {
   completedLevels: string[];
   // Levels the player has entered at least once.
   enteredLevels?: string[];
+  // Timestamp of when chat messages were last sent to this player.
+  lastChatTimestamp?: number;
 }
 
 export interface GameState {
   hubLevel: LevelState;
   // Map of player email to their state
   players: Record<string, PlayerState>;
+  // Logged chat messages in the hub world
+  chatMessages: ChatMessage[];
 }
 
 export function createGame(): GameState {
   return {
     hubLevel: createHubLevel(),
     players: {},
+    chatMessages: [],
   };
 }
 
 export type ResponseTemplate =
   | "newplayer"
+  | "customization"
   | "intro"
   | "turn"
   | "error"
@@ -71,14 +85,54 @@ export interface ActionResponse {
   template: ResponseTemplate;
   // Things that happened this turn, to tell the player about.
   messages: string[];
+  // Recent chat messages to include when sending the state of the overworld.
+  chatMessages?: ChatMessage[];
   additionalData: Record<string, string>;
+}
+
+const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+const MAX_RECENT_CHAT_MESSAGES = 10;
+
+let lastGeneratedTimestamp = 0;
+
+function resolveTimestamp(now?: number): number {
+  if (now !== undefined) {
+    return now;
+  }
+  const current = Date.now();
+  lastGeneratedTimestamp = Math.max(current, lastGeneratedTimestamp + 1);
+  return lastGeneratedTimestamp;
+}
+
+function collectOverworldChatMessages(
+  game: GameState,
+  address: string,
+  timestamp: number,
+): ChatMessage[] {
+  const player = game.players[address]!;
+  const lastSent = player.lastChatTimestamp;
+  const cutoff = timestamp - SIX_HOURS_MS;
+  const allMessages = game.chatMessages ?? [];
+
+  const recent = allMessages
+    .filter(
+      (msg) =>
+        msg.timestamp >= cutoff &&
+        (lastSent == null || msg.timestamp > lastSent),
+    )
+    .slice(-MAX_RECENT_CHAT_MESSAGES);
+
+  player.lastChatTimestamp = timestamp;
+  return recent;
 }
 
 export function doPlayerAction(
   game: GameState,
   address: string,
   emailContent: string,
+  now?: number,
 ): ActionResponse {
+  const timestamp = resolveTimestamp(now);
   const player = game.players[address];
   // If no player with the email: Add a new player!
   if (player == null) {
@@ -88,6 +142,17 @@ export function doPlayerAction(
       template: "newplayer",
       messages: [],
       additionalData: {},
+    };
+  }
+
+  // Responding with name
+  if (player.state === "awaiting_name") {
+    const newGame = setPlayerName(game, address, emailContent);
+    return {
+      games: [newGame],
+      template: "customization",
+      messages: [],
+      additionalData: { name: newGame.players[address]!.name ?? "" },
     };
   }
 
@@ -104,10 +169,16 @@ export function doPlayerAction(
         additionalData: { error: (err as Error).message },
       };
     }
+    const chatMessages = collectOverworldChatMessages(
+      newGame,
+      address,
+      timestamp,
+    );
     return {
       games: [newGame],
       template: "intro",
       messages: [],
+      chatMessages,
       additionalData: {},
     };
   }
@@ -118,11 +189,23 @@ export function doPlayerAction(
       game,
       address,
       emailContent,
+      timestamp,
     );
+    const lastGame = games[games.length - 1]!;
+    const lastPlayer = lastGame.players[address]!;
+    let chatMessages: ChatMessage[] | undefined;
+    if (!lastPlayer.currentLevel) {
+      chatMessages = collectOverworldChatMessages(
+        lastGame,
+        address,
+        timestamp,
+      );
+    }
     return {
       games,
       template: template ?? "turn",
       messages,
+      chatMessages,
       additionalData: level != null ? { level } : {},
     };
   } catch (err) {
@@ -154,13 +237,26 @@ function setPlayerLevel(
 
 function addNewPlayer(game: GameState, address: string): GameState {
   const newGame = structuredClone(game);
-  // Players aren't placed in the world until they've said what they look like.
+  // Players aren't placed in the world until they've given their name and said what they look like.
   newGame.players[address] = {
     email: address,
-    state: "awaiting_customization",
+    state: "awaiting_name",
     p: { x: 0, y: 0 },
     completedLevels: [],
   };
+  return newGame;
+}
+
+function setPlayerName(
+  game: GameState,
+  address: string,
+  emailContent: string,
+): GameState {
+  const newGame = structuredClone(game);
+  const player = newGame.players[address]!;
+  const firstLine = emailContent.trim().split(/\r?\n/)[0]?.trim() ?? "";
+  player.name = firstLine || address.split("@")[0] || address;
+  player.state = "awaiting_customization";
   return newGame;
 }
 
@@ -297,6 +393,7 @@ function takePlayerTurn(
   game: GameState,
   address: string,
   command: string,
+  timestamp: number,
 ): TurnResult {
   const newGame = structuredClone(game);
   const player = newGame.players[address]!;
@@ -322,6 +419,21 @@ function takePlayerTurn(
   }
 
   const action = parseAction(command);
+
+  if (action.type === "say") {
+    if (player.currentLevel) {
+      throw new Error(
+        `Something's wrong with that command: "${command.trim()}". You can only chat in the hub world!`,
+      );
+    }
+    newGame.chatMessages ??= [];
+    newGame.chatMessages.push({
+      sender: player.name || player.email,
+      message: action.message!,
+      timestamp,
+    });
+    return { messages: [], games: [newGame] };
+  }
 
   if (action.type === "restart") {
     if (!player.currentLevel) {

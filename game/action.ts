@@ -1,6 +1,6 @@
 import { Dirs, type Dir, type Point, parseColumnLetters } from "./lib/common.ts";
 
-export type ActionType = "move" | "wait" | "coord" | "restart" | "exit";
+export type ActionType = "move" | "wait" | "coord" | "restart" | "exit" | "say";
 
 export interface Coordinate {
   col: string;
@@ -12,6 +12,7 @@ export class Action {
   public dist: number = 1;
   public type: ActionType = "move";
   public coord: Coordinate | undefined;
+  public message: string | undefined;
 
   constructor(type: ActionType = "move") {
     this.type = type;
@@ -28,6 +29,9 @@ export class Action {
       this.type === "exit"
     ) {
       return true;
+    }
+    if (this.type === "say") {
+      return Boolean(this.message && this.message.length > 0);
     }
     if (this.type === "coord") {
       if (!hasEnemies) {
@@ -54,18 +58,32 @@ export class Action {
   }
 }
 
-// Parses a command like "up 2", "left", "a1", "wait", "restart", or "exit". See spec/commands.md.
+// Parses a command like "up 2", "left", "a1", "wait", "restart", "exit", or "say ...". See spec/commands.md.
 export function parseAction(command: string): Action {
-  const args = command.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const trimmed = command.trim();
+  const args = trimmed.toLowerCase().split(/\s+/).filter(Boolean);
   if (args.length === 0) {
     throw new Error("You didn't say what to do!");
+  }
+
+  // Chat command: "say some message"
+  if (args[0] === "say") {
+    const msg = trimmed.slice(3).trim();
+    if (!msg) {
+      throw new Error(
+        `Something's wrong with that command: "${trimmed}". Try something like "up 2", "a1" or "wait".`,
+      );
+    }
+    const action = new Action("say");
+    action.message = msg;
+    return action;
   }
 
   if (args.length === 1 && args[0] === "wait") {
     return new Action("wait");
   }
 
-  const words = command.trim().toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const words = trimmed.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
   if (
     words.includes("restart") ||
     words.includes("retry") ||
@@ -104,7 +122,7 @@ export function parseAction(command: string): Action {
   const dist = args.length === 2 ? parseIntOrUndefined(args[1]) : 1;
   if (dir === undefined || dist === undefined || dist < 1 || args.length > 2) {
     throw new Error(
-      `Something's wrong with that command: "${command.trim()}". Try something like "up 2", "a1" or "wait".`,
+      `Something's wrong with that command: "${trimmed}". Try something like "up 2", "a1" or "wait".`,
     );
   }
 

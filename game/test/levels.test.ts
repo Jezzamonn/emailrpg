@@ -27,6 +27,7 @@ function lastGame(res: { games: GameState[] }): GameState {
 
 function joinGame(game: GameState, email: string): GameState {
   game = lastGame(doPlayerAction(game, email, ""));
+  game = lastGame(doPlayerAction(game, email, email.split("@")[0]!));
   return lastGame(doPlayerAction(game, email, "short brown hair, medium skin, blue clothes"));
 }
 
@@ -37,7 +38,7 @@ function setPlayerPos(game: GameState, email: string, x: number, y: number) {
 }
 
 describe("Data-driven game architecture & spec/levels.md", () => {
-  it("new players are asked what they look like before joining the hub", () => {
+  it("new players are asked their name and what they look like before joining the hub", () => {
     let game = createGame();
     assert.equal(game.hubLevel.width, 15);
     assert.equal(game.hubLevel.height, 11);
@@ -46,6 +47,13 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     const res1 = doPlayerAction(game, "alice@example.com", "hi");
     assert.equal(res1.template, "newplayer");
     game = lastGame(res1);
+    assert.equal(game.players["alice@example.com"].state, "awaiting_name");
+    assert.equal(game.hubLevel.entities.filter((e) => e.type === "player").length, 0);
+
+    const resName = doPlayerAction(game, "alice@example.com", "Alice");
+    assert.equal(resName.template, "customization");
+    game = lastGame(resName);
+    assert.equal(game.players["alice@example.com"].name, "Alice");
     assert.equal(game.players["alice@example.com"].state, "awaiting_customization");
     assert.equal(game.hubLevel.entities.filter((e) => e.type === "player").length, 0);
 
@@ -66,6 +74,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
   it("returns customization_error when character styling traits are missing, and allows bald without hair color", () => {
     let game = createGame();
     game = lastGame(doPlayerAction(game, "alice@example.com", "hi"));
+    game = lastGame(doPlayerAction(game, "alice@example.com", "Alice"));
 
     const badRes = doPlayerAction(game, "alice@example.com", "Ponytail, blonde");
     assert.equal(badRes.template, "customization_error");
@@ -721,5 +730,79 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     });
 
     assert.notDeepEqual(lockedSurface.pixels, unlockedSurface.pixels);
+  });
+
+  it("supports 'say some message' only in the hub world and tracks chat message timestamps per player", () => {
+    const sayAct = parseAction("say Hello there!");
+    assert.equal(sayAct.type, "say");
+    assert.equal(sayAct.message, "Hello there!");
+    assert.throws(() => parseAction("say   "));
+
+    const t0 = 1_700_000_000_000;
+    const oneHour = 60 * 60 * 1000;
+
+    let game = createGame();
+    // Alice joins at t0
+    game = lastGame(doPlayerAction(game, "alice@example.com", "hi", t0));
+    game = lastGame(doPlayerAction(game, "alice@example.com", "Alice", t0 + 10));
+    game = lastGame(
+      doPlayerAction(
+        game,
+        "alice@example.com",
+        "short brown hair, medium skin, blue clothes",
+        t0 + 20,
+      ),
+    );
+
+    // Bob joins at t0 + 30
+    game = lastGame(doPlayerAction(game, "bob@example.com", "hi", t0 + 30));
+    game = lastGame(doPlayerAction(game, "bob@example.com", "Bob", t0 + 40));
+    game = lastGame(
+      doPlayerAction(
+        game,
+        "bob@example.com",
+        "bald, light skin, red clothes",
+        t0 + 50,
+      ),
+    );
+
+    // Alice says something in the hub
+    const sayRes = doPlayerAction(game, "alice@example.com", "say hello beach", t0 + 100);
+    assert.equal(sayRes.template, "turn");
+    assert.deepEqual(sayRes.chatMessages, [
+      { sender: "Alice", message: "hello beach", timestamp: t0 + 100 },
+    ]);
+    game = lastGame(sayRes);
+    assert.equal(game.chatMessages.length, 1);
+    assert.equal(game.players["alice@example.com"].lastChatTimestamp, t0 + 100);
+
+    // Bob enters a dungeon at (4, 3): while in the dungeon, Bob cannot chat and does not receive overworld chat
+    setPlayerPos(game, "bob@example.com", 4, 4);
+    const enterRes = doPlayerAction(game, "bob@example.com", "up 1", t0 + 200);
+    assert.equal(enterRes.chatMessages, undefined);
+    game = lastGame(enterRes);
+    assert.ok(game.players["bob@example.com"].currentLevel);
+
+    // Trying to say in a dungeon fails
+    const sayInDungeon = doPlayerAction(game, "bob@example.com", "say help me", t0 + 300);
+    assert.equal(sayInDungeon.template, "error");
+    assert.match(sayInDungeon.additionalData.error, /only chat in the hub world/);
+
+    // Alice sends another message while Bob is in the dungeon
+    game = lastGame(doPlayerAction(game, "alice@example.com", "say where did Bob go?", t0 + 400));
+
+    // When Bob exits back to the hub world, he receives both messages sent since his last overworld email (t0 + 50)
+    const exitRes = doPlayerAction(game, "bob@example.com", "exit", t0 + oneHour);
+    assert.equal(exitRes.template, "turn");
+    assert.deepEqual(exitRes.chatMessages, [
+      { sender: "Alice", message: "hello beach", timestamp: t0 + 100 },
+      { sender: "Alice", message: "where did Bob go?", timestamp: t0 + 400 },
+    ]);
+    game = lastGame(exitRes);
+    assert.equal(game.players["bob@example.com"].lastChatTimestamp, t0 + oneHour);
+
+    // On Bob's next turn in the hub, those messages are not sent again
+    const waitRes = doPlayerAction(game, "bob@example.com", "wait", t0 + oneHour + 100);
+    assert.deepEqual(waitRes.chatMessages, []);
   });
 });
