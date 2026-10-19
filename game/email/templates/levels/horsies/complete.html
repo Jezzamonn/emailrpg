@@ -1,8 +1,14 @@
-{{#each messages}}<p><strong>{{this}}</strong></p>
-{{/each}}<p><img src="cid:game_view" alt="Game Board" style="image-rendering: pixelated;"></p>
-<p><em><span style="color: #590063;">The horses gallop away and the third spirit is free: "Neigh more ignoring emails for me! Thank you, friend."</span></em></p>
-<p><span style="color: #e67e23;"><em>You are whisked back to the beach.</em></span></p>
-{{#if images.hub_view}}<p><img src="cid:hub_view" alt="Game Board" style="image-rendering: pixelated;"></p>
-{{/if}}{{#if chatMessages}}<p>What people are saying:</p>
-{{#each chatMessages}}<p><strong>{{sender}}:</strong> {{message}}</p>
-{{/each}}{{/if}}<p>Where to next?</p>
+<p>{{#each messages}}</p>
+<p><strong>{{this}}</strong></p>
+<p>{{/each}}</p>
+<p><img src="cid:game_view" alt="Game Board" style="image-rendering: pixelated;"></p>
+<p><em><span style="color: #590063;">HORSES ARE GONE!!!! HECK YEAH!!</span></em></p>
+<p><span style="color: #e67e23;"><em>You arrive back to the beach and you've saved all the spirits that really matter. THere's another spirit there but it's probably too hard of a challenge so I don't know if you can really face it. So...</em></span><span style="color: #e67e23;"><em></em></span></p>
+<p><span style="color: #f72dff; font-size: 18pt;"><em>CONGRATS on making it this far!!!</em></span></p>
+<p>{{#if images.hub_view}}</p>
+<p><img src="cid:hub_view" alt="Game Board" style="image-rendering: pixelated;"></p>
+<p>{{/if}}{{#if chatMessages}}</p>
+<p>What people are saying:</p>
+<p>{{#each chatMessages}}</p>
+<p><strong>{{sender}}:</strong> {{message}}</p>
+<p>{{/each}}{{/if}}</p>

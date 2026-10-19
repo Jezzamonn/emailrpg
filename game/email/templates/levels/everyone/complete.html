@@ -1,8 +1,18 @@
-{{#each messages}}<p><strong>{{this}}</strong></p>
-{{/each}}<p><img src="cid:game_view" alt="Game Board" style="image-rendering: pixelated;"></p>
-<p><em><span style="color: #590063;">The last creature falls and every spirit is FREE!!! They gather around you and chant: "FORWARD! FORWARD! FORWARD!"</span></em></p>
-<p><span style="color: #f1c40f;"><strong>Here is your special reward: forward this email to 10 friends and something AMAZING will happen!!!</strong></span></p>
-{{#if images.hub_view}}<p><img src="cid:hub_view" alt="Game Board" style="image-rendering: pixelated;"></p>
-{{/if}}{{#if chatMessages}}<p>What people are saying:</p>
-{{#each chatMessages}}<p><strong>{{sender}}:</strong> {{message}}</p>
-{{/each}}{{/if}}
+<p>{{#each messages}}</p>
+<p><strong>{{this}}</strong></p>
+<p>{{/each}}</p>
+<p><img src="cid:game_view" alt="Game Board" style="image-rendering: pixelated;"></p>
+<p><em><span style="color: #590063;"><span style="font-size: 36pt;">YOU WINN!!!!</span></span></em></p>
+<p><em><span style="color: #590063;"><span style="font-size: 36pt;">YESSSSSS</span></span></em></p>
+<p></p>
+<p><em><span style="color: #590063;"><span style="font-size: 36pt;">ALL I have to reward you is for some 36pt big message saying...<br>YOU ARE THE WINNER!!!!!</span></span></em></p>
+<p><span style="font-size: 18pt;"><em><span style="color: #590063;">It was all worth it!!</span></em></span></p>
+<p><span style="font-size: 14pt;"><em><span style="color: #590063;">You feel a sense of great joy and pride and you feel fill with the desire to rate games highly. Any bad feelings towards the game <s>slowly</s> quickly fade away and you go ahead and do that!!</span></em></span></p>
+<p><span style="font-size: 14pt;"><em><span style="color: #590063;">Nah but good job. You can hang out in this main beach area if you want now I guess.</span></em></span></p>
+<p>{{#if images.hub_view}}</p>
+<p><img src="cid:hub_view" alt="Game Board" style="image-rendering: pixelated;"></p>
+<p>{{/if}}{{#if chatMessages}}</p>
+<p>What people are saying:</p>
+<p>{{#each chatMessages}}</p>
+<p><strong>{{sender}}:</strong> {{message}}</p>
+<p>{{/each}}{{/if}}</p>
