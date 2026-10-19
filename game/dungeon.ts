@@ -67,7 +67,7 @@ function parseLevel(level: string): {
 export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
   {
     id: 1,
-    name: "Rat Cellar",
+    name: "rat-and-bat",
     ...parseLevel(`
 🐀⬛⬛⬛
 🦇⬛🐀🦇
@@ -77,7 +77,7 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
   },
   {
     id: 2,
-    name: "Bat Belfry",
+    name: "snail",
     ...parseLevel(`
 🐌💤🐌
 ⬛🤴⬛
@@ -88,28 +88,20 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
     id: 3,
     name: "Wolf Warrens",
     ...parseLevel(`
-⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛🐀⬛⬛⬛⬛
-⬛⬛🐴⬛⬛🐴⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛🤴⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛
+🐴🐴⬛
+⬛🐴🐴
+🐴⬛⬛
+⬛🤴⬛
     `),
   },
   {
     id: 4,
     name: "The Gauntlet",
     ...parseLevel(`
-⬛⬛⬛⬛⬛⬛⬛⬛
-⬛🐴⬛⬛⬛⬛🦇⬛
-⬛⬛⬛⬛⬛⬛⬛⬛
-⬛🐀⬛⬛⬛⬛🐌⬛
-⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛
-⬛⬛⬛🤴⬛⬛⬛⬛
-⬛⬛⬛⬛⬛⬛⬛⬛
+🐴🐀🦇🐌
+⬛⬛💤🐴
+🦇⬛⬛🐀
+⬛🤴⬛⬛
     `),
   },
 ];
