@@ -144,6 +144,9 @@ function renderUI() {
   } else if (game.players[activeEmail]?.state === "dead") {
     replyInput.placeholder = "You died! Enter 'restart' or 'island'...";
     replySubmitBtn.textContent = "Send Choice";
+  } else if (game.players[activeEmail]?.state === "victory") {
+    replyInput.placeholder = "Level complete! Reply with anything to return to the island...";
+    replySubmitBtn.textContent = "Return to Island";
   } else {
     replyInput.placeholder = "Enter command (e.g. up, down 2, a1, m10, wait)...";
     replySubmitBtn.textContent = "Send Command";
@@ -174,7 +177,7 @@ replyForm.addEventListener("submit", (e) => {
   e.preventDefault();
   if (!activeEmail) return;
   const command = replyInput.value.trim();
-  if (command) {
+  if (command || game.players[activeEmail]?.state === "victory") {
     replyInput.value = "";
     sendEmailForSession(activeEmail, command);
   }

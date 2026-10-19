@@ -40,3 +40,7 @@ island
 
 `restart` restarts the level they just died in, and `island` returns them to the main beach hub.
 
+### When a player beats a level:
+
+When all enemies in a level are killed, the player is shown the level they just beat with information about their reward, and the level is recorded in their list of beaten levels. Replying with anything returns the player to the main beach hub.
+

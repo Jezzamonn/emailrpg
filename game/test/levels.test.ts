@@ -424,4 +424,55 @@ describe("Data-driven game architecture & spec/levels.md", () => {
       false,
     );
   });
+
+  it("when a player beats a level, shows the beaten level with reward info, records it in completedLevels, and any reply returns to the hub", () => {
+    let game = joinGame(createGame(), "alice@example.com");
+    const alice = game.players["alice@example.com"];
+
+    // Place Alice in a dungeon with one enemy 1 square north
+    alice.currentLevel = {
+      name: "Rat Cellar",
+      width: 5,
+      height: 5,
+      entities: [
+        { type: "player", p: { x: 2, y: 2 }, playerId: alice.email },
+        { type: "ortho", p: { x: 2, y: 1 } },
+      ],
+    };
+    alice.currentLevelName = "Rat Cellar";
+    alice.p = { x: 2, y: 2 };
+    game.hubLevel.entities = game.hubLevel.entities.filter((e) => e.playerId !== alice.email);
+
+    // Alice moves up 1 and kills the last enemy
+    const winRes = doPlayerAction(game, "alice@example.com", "up 1");
+    const victoriousAlice = winRes.game.players["alice@example.com"];
+
+    // Shows the level she just beat (still in currentLevel, not yet in hub)
+    assert.equal(winRes.template, "turn");
+    assert.equal(victoriousAlice.state, "victory");
+    assert.ok(victoriousAlice.currentLevel);
+    assert.equal(levelHasEnemies(victoriousAlice.currentLevel), false);
+    assert.deepEqual(victoriousAlice.p, { x: 2, y: 1 });
+    assert.equal(
+      winRes.game.hubLevel.entities.some((e) => e.playerId === alice.email),
+      false,
+    );
+
+    // Records the beaten level in completedLevels and includes reward message
+    assert.deepEqual(victoriousAlice.completedLevels, ["Rat Cellar"]);
+    assert.ok(winRes.messages.some((m) => /reward/i.test(m) && /Rat Cellar/i.test(m)));
+
+    // Replying with anything puts the player back in the hub level
+    const returnRes = doPlayerAction(winRes.game, "alice@example.com", "awesome!!");
+    const hubAlice = returnRes.game.players["alice@example.com"];
+
+    assert.equal(returnRes.template, "turn");
+    assert.equal(hubAlice.state, "active");
+    assert.equal(hubAlice.currentLevel, undefined);
+    assert.deepEqual(hubAlice.completedLevels, ["Rat Cellar"]);
+    assert.equal(
+      returnRes.game.hubLevel.entities.some((e) => e.playerId === alice.email),
+      true,
+    );
+  });
 });

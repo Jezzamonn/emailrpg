@@ -19,7 +19,11 @@ import {
 } from "./level.ts";
 import { Dirs, type Point, Points, parseColumnLetters } from "./lib/common.ts";
 
-export type UserState = "awaiting_customization" | "active" | "dead";
+export type UserState =
+  | "awaiting_customization"
+  | "active"
+  | "dead"
+  | "victory";
 
 export interface PlayerState {
   email: string;
@@ -30,6 +34,7 @@ export interface PlayerState {
   currentLevelName?: string;
   initialLevel?: LevelState;
   initialP?: Point;
+  completedLevels: string[];
 }
 
 export interface GameState {
@@ -138,6 +143,7 @@ function addNewPlayer(game: GameState, address: string): void {
     email: address,
     state: "awaiting_customization",
     p: { x: 0, y: 0 },
+    completedLevels: [],
   };
 }
 
@@ -256,6 +262,11 @@ function takePlayerTurn(
   player: PlayerState,
   command: string,
 ): string[] {
+  if (player.state === "victory") {
+    placePlayerInHub(game, player);
+    return [];
+  }
+
   if (player.state === "dead") {
     let action;
     try {
@@ -306,7 +317,8 @@ function takePlayerTurn(
   }
 
   const level = getPlayerLevel(game, player);
-  if (action.type === "move" && !action.isValid(levelHasEnemies(level))) {
+  const hadEnemies = levelHasEnemies(level);
+  if (action.type === "move" && !action.isValid(hadEnemies)) {
     throw new Error(
       "Whoa there! With enemies around you can only move 2 spaces at a time.",
     );
@@ -332,7 +344,7 @@ function takePlayerTurn(
       throw new Error("You can't go that way, that's the edge of the world!");
     }
 
-    if (levelHasEnemies(level)) {
+    if (hadEnemies) {
       const dx = target.x - player.p.x;
       const dy = target.y - player.p.y;
       const isCardinal = (dx === 0 && dy !== 0) || (dy === 0 && dx !== 0);
@@ -399,6 +411,24 @@ function takePlayerTurn(
   }
 
   setPlayerLevel(game, player, steppedLevel);
+
+  if (
+    player.currentLevel &&
+    hadEnemies &&
+    !levelHasEnemies(steppedLevel) &&
+    killedPlayerIds.size === 0
+  ) {
+    player.state = "victory";
+    const completedLevelName =
+      player.currentLevelName ?? steppedLevel.name ?? "Dungeon";
+    player.completedLevels ??= [];
+    if (!player.completedLevels.includes(completedLevelName)) {
+      player.completedLevels.push(completedLevelName);
+    }
+    messages.push(
+      `You beat ${completedLevelName}! You got the reward for ${completedLevelName}! Reply with anything to return to the island.`,
+    );
+  }
 
   return messages;
 }
