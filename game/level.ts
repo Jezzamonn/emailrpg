@@ -369,11 +369,6 @@ export function renderLevel(
     }
   }
 
-  // Show move indicators in dungeons only (the hub has beach tiles and no enemies)
-  if (level.backgroundTiles == null && levelHasEnemies(level)) {
-    renderMoveIndicators(boardSurface, level, frame, forPlayer);
-  }
-
   // 1. Loop over each entity and put them in a data structure indexed by coordinate
   const entitiesByCoord = new Map<string, EntityState[]>();
   for (const entity of level.entities) {
@@ -427,6 +422,11 @@ export function renderLevel(
         );
       }
     }
+  }
+
+  // Show move indicators on top of entities, in dungeons only (the hub has beach tiles and no enemies)
+  if (level.backgroundTiles == null && levelHasEnemies(level)) {
+    renderMoveIndicators(boardSurface, level, frame, forPlayer);
   }
 
   surface.drawSurface(boardSurface, offsetX, offsetY);
