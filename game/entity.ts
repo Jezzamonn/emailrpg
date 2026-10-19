@@ -1,8 +1,4 @@
-import {
-  type EntityState,
-  type PlayerAppearance,
-  entityGroupOf,
-} from "./types.ts";
+import { type PlayerAppearance, type Point } from "./types.ts";
 import { type SpriteSheet, Surface, Colors } from "./lib/surface.ts";
 import { decodePng } from "./lib/png.ts";
 import skinLightPng from "../assets/exported/character-skin-light.png";
@@ -20,6 +16,22 @@ import ponytailBlackPng from "../assets/exported/character-ponytail-black.png";
 
 // Size of a tile in pixels, which is also the size of the player sprites.
 export const TILE_SIZE = 30;
+
+export type EntityGroup = "player" | "enemy" | "obstacle";
+export type EntityType = "player" | "ortho" | "diag" | "knight" | "slow";
+
+export function entityGroupOf(type: EntityType): EntityGroup {
+  if (type === "player") return "player";
+  return "enemy";
+}
+
+export interface EntityState {
+  type: EntityType;
+  p: Point;
+  playerId?: string;
+  appearance?: PlayerAppearance;
+  cooldown?: number;
+}
 
 const PLAYER_SPRITE_DATA = {
   skin: {
@@ -63,7 +75,9 @@ function playerSpriteLayers(appearance: PlayerAppearance): SpriteSheet[] {
     PLAYER_SPRITE_DATA.clothes[appearance.clothesColor],
   ];
   if (appearance.hairType !== "bald") {
-    layers.push(PLAYER_SPRITE_DATA.hair[appearance.hairType][appearance.hairColor]);
+    layers.push(
+      PLAYER_SPRITE_DATA.hair[appearance.hairType][appearance.hairColor],
+    );
   }
   return layers.map(getSprite);
 }
@@ -79,7 +93,15 @@ export function renderEntity(
   if (entity.type === "player" && entity.appearance) {
     // Each sprite sheet has one TILE_SIZE wide frame per animation frame.
     for (const sheet of playerSpriteLayers(entity.appearance)) {
-      surface.drawSprite(sheet, frame * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE, px, py);
+      surface.drawSprite(
+        sheet,
+        frame * TILE_SIZE,
+        0,
+        TILE_SIZE,
+        TILE_SIZE,
+        px,
+        py,
+      );
     }
     return;
   }
@@ -88,7 +110,13 @@ export function renderEntity(
   const dy = py + yOffset;
 
   if (entity.type === "player") {
-    surface.fillRect(px + 2, dy + 2, TILE_SIZE - 4, TILE_SIZE - 4, Colors.Yellow);
+    surface.fillRect(
+      px + 2,
+      dy + 2,
+      TILE_SIZE - 4,
+      TILE_SIZE - 4,
+      Colors.Yellow,
+    );
     surface.strokeRect(
       px + 1,
       dy + 1,

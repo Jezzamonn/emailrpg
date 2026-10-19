@@ -1,28 +1,7 @@
+import type { LevelState } from "./index.ts";
 import type { Point } from "./lib/common.ts";
 
 export type { Point };
-
-export type EntityGroup = "player" | "enemy" | "obstacle";
-export type EntityType = "player" | "ortho" | "diag" | "knight" | "slow";
-
-export function entityGroupOf(type: EntityType): EntityGroup {
-  if (type === "player") return "player";
-  return "enemy";
-}
-
-export interface LevelState {
-  width: number;
-  height: number;
-  entities: EntityState[];
-}
-
-export interface EntityState {
-  type: EntityType;
-  p: Point;
-  playerId?: string;
-  appearance?: PlayerAppearance;
-  cooldown?: number;
-}
 
 export type UserState = "awaiting_customization" | "active";
 

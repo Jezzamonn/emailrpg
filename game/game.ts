@@ -1,22 +1,22 @@
 import { parseAction } from "./action.ts";
 import { stepLevelEnemies } from "./enemy.ts";
+import { entityGroupOf } from "./entity.ts";
 import {
   createLevel,
   levelEntitiesAt,
   levelHasEnemies,
   levelInBound,
+  type LevelState,
 } from "./level.ts";
 import { Dirs, Points } from "./lib/common.ts";
 import {
   type ClothesColor,
   type HairColor,
   type HairType,
-  type LevelState,
   type PlayerAppearance,
   type PlayerState,
   type Point,
   type SkinColor,
-  entityGroupOf,
 } from "./types.ts";
 
 export * from "./types.ts";

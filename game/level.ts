@@ -1,12 +1,18 @@
-import {
-  type Point,
-  type EntityState,
-  type LevelState,
-  entityGroupOf,
-} from "./types.ts";
+import { type Point } from "./types.ts";
 import { Surface, rgba } from "./lib/surface.ts";
-import { TILE_SIZE, renderEntity } from "./entity.ts";
+import {
+  TILE_SIZE,
+  entityGroupOf,
+  renderEntity,
+  type EntityState,
+} from "./entity.ts";
 import { getBanterFont } from "./lib/font.ts";
+
+export interface LevelState {
+  width: number;
+  height: number;
+  entities: EntityState[];
+}
 
 function getColumnLetter(colIndex: number): string {
   let s = "";
@@ -52,7 +58,6 @@ export function renderLevel(
   options: LevelRenderOptions = {},
   forPlayer?: string,
 ): void {
-
   const showCoordinates =
     options.showCoordinates ??
     (surface.width > level.width * TILE_SIZE ||
