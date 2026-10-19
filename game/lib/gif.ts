@@ -4,7 +4,7 @@ const { GIFEncoder, quantize, applyPalette } = gifenc;
 import { Surface } from "./surface.ts";
 
 export interface GifOptions {
-  delay?: number; // Delay in ms per frame (default: 500)
+  delay?: number; // Delay in ms per frame (default: 100)
   repeat?: number; // 0 = loop forever (default: 0)
   maxColors?: number; // max palette colors (default: 256)
   showCoordinates?: boolean; // default: true
@@ -24,7 +24,7 @@ export function encodeSurfacesToGif(
     throw new Error("Cannot encode 0 frames to GIF");
   }
 
-  const delay = options.delay ?? 500;
+  const delay = options.delay ?? 100;
   const repeat = options.repeat ?? 0;
   const maxColors = options.maxColors ?? 256;
 
