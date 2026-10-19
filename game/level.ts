@@ -1,5 +1,5 @@
 import type { Point } from "./lib/common.ts";
-import { type SpriteSheet, Surface, rgba } from "./lib/surface.ts";
+import { type SpriteSheet, Surface, Colors, rgba } from "./lib/surface.ts";
 import {
   TILE_SIZE,
   entityGroupOf,
@@ -118,16 +118,16 @@ export function createHubLevel(): LevelState {
 
   // Ascii drawing
   const beachTiles = `
-DDDDWWWWWWDDDDD
+DDWWWWWWWWDDDDD
 DWWSSSSSSSWWDDD
-DWSSSSGSSSSWWWD
+DWSSSSGSSSSSWWD
 DDWSGGGGGGGGSWD
-DDWSGGGGGGGSSWD
-DDWSGGGGGGGSWWD
-DWGGGGGGGGGGSSD
-DWWGGGGGGGGSSWD
-DDWSGGGGGSSSWDD
-DWWWSSSSSSWWDDD
+DWWSGGGGGGGSSWD
+WWSSGGGGGGGSSWW
+WSGGGGGGGGGGSSW
+WSSGGGGGGGGSSWW
+WWSSGGGGGSSSWWD
+DWWWSSSSSSWWWDD
 DDDWWWWWWWWDDDD
   `;
   level.backgroundTiles = beachTiles
@@ -191,8 +191,12 @@ export function renderLevel(
       ? "all"
       : "bottom-left");
 
-  const borderColor = options.borderColor ?? rgba(24, 24, 24);
-  const fontColor = options.fontColor ?? rgba(180, 180, 180);
+  const hasBeachTiles = level.backgroundTiles != null;
+  const borderColor =
+    options.borderColor ??
+    (hasBeachTiles ? getBeachTilesSheet().pixels[0] : rgba(24, 24, 24));
+  const fontColor =
+    options.fontColor ?? (hasBeachTiles ? Colors.Black : rgba(180, 180, 180));
 
   let offsetX = 0;
   let offsetY = 0;
@@ -206,6 +210,22 @@ export function renderLevel(
       offsetY = 0;
     }
     surface.clear(borderColor);
+    if (hasBeachTiles && options.borderColor == null) {
+      const sheet = getBeachTilesSheet();
+      for (let ty = 0; ty < Math.ceil(surface.height / TILE_SIZE); ty++) {
+        for (let tx = 0; tx < Math.ceil(surface.width / TILE_SIZE); tx++) {
+          surface.drawSprite(
+            sheet,
+            0,
+            0,
+            TILE_SIZE,
+            TILE_SIZE,
+            tx * TILE_SIZE,
+            ty * TILE_SIZE,
+          );
+        }
+      }
+    }
   }
 
   const boardW = level.width * TILE_SIZE;
