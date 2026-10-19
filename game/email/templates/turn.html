@@ -1,9 +1,16 @@
-{{#if action}}<p>{{action}} Here's what happens next:</p>
-{{else}}<p>You go ahead and do that thing. Here's what happens next:</p>
-{{/if}}{{#each messages}}<p><strong>{{this}}</strong></p>
-{{/each}}<p><img src="cid:game_view" alt="Game Board" style="image-rendering: pixelated;"></p>
-{{#if images.hub_view}}<p><img src="cid:hub_view" alt="Game Board" style="image-rendering: pixelated;"></p>
-{{/if}}{{#if chatMessages}}<p>What people are saying:</p>
-{{#each chatMessages}}<p><strong>{{sender}}:</strong> {{message}}</p>
-{{/each}}{{/if}}
+<p>{{#if action}}</p>
+<p>{{action}} Here's what happens next:</p>
+<p>{{else}}</p>
+<p>You go ahead and do that thing. Here's what happens next:</p>
+<p><span style="font-size: 18pt;">{{/if}}{{#each messages}}</span></p>
+<p><strong>{{this}}</strong></p>
+<p>{{/each}}</p>
+<p><img src="cid:game_view" alt="Game Board" style="image-rendering: pixelated;"></p>
+<p>{{#if images.hub_view}}</p>
+<p><img src="cid:hub_view" alt="Game Board" style="image-rendering: pixelated;"></p>
+<p>{{/if}}{{#if chatMessages}}</p>
+<p>What people are saying:</p>
+<p>{{#each chatMessages}}</p>
+<p><strong>{{sender}}:</strong> {{message}}</p>
+<p>{{/each}}{{/if}}</p>
 <p>Now tell me what you want to do next.........</p>
