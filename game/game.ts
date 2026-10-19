@@ -9,7 +9,7 @@ import {
   entityGroupOf,
 } from "./entity.ts";
 import {
-  createLevel,
+  createHubLevel,
   levelEntitiesAt,
   levelHasEnemies,
   levelInBound,
@@ -38,10 +38,6 @@ export function createGame(): GameState {
     hubLevel: createHubLevel(),
     players: {},
   };
-}
-
-function createHubLevel(): LevelState {
-  return createLevel(11, 11);
 }
 
 export type ResponseTemplate = "newplayer" | "intro" | "turn";

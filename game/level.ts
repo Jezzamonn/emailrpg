@@ -1,5 +1,5 @@
 import type { Point } from "./lib/common.ts";
-import { Surface, rgba } from "./lib/surface.ts";
+import { type SpriteSheet, Surface, rgba } from "./lib/surface.ts";
 import {
   TILE_SIZE,
   entityGroupOf,
@@ -7,11 +7,92 @@ import {
   type EntityState,
 } from "./entity.ts";
 import { getBanterFont } from "./lib/font.ts";
+import { decodePng } from "./lib/png.ts";
+import beachTilesPng from "../assets/exported/beachtiles.png";
+
+// psuedo enum but just a number
+export const BeachTile = {
+  DeepWater: 0,
+  Water: 1,
+  Sand: 2,
+  Grass: 3,
+} as const;
+export type BeachTile = (typeof BeachTile)[keyof typeof BeachTile];
+
+let beachTilesSheet: SpriteSheet | null = null;
+
+function getBeachTilesSheet(): SpriteSheet {
+  if (!beachTilesSheet) {
+    beachTilesSheet = decodePng(new Uint8Array(beachTilesPng));
+  }
+  return beachTilesSheet;
+}
+
+function getBeachTileAt(
+  tiles: BeachTile[][],
+  x: number,
+  y: number,
+): BeachTile {
+  if (y < 0 || y >= tiles.length || x < 0 || x >= tiles[y].length) {
+    return BeachTile.DeepWater;
+  }
+  return tiles[y][x];
+}
+
+function renderBeachTiles(
+  surface: Surface,
+  level: LevelState,
+  tiles: BeachTile[][],
+): void {
+  const sheet = getBeachTilesSheet();
+  const halfTile = TILE_SIZE / 2;
+
+  for (let y = 0; y < level.height; y++) {
+    for (let x = 0; x < level.width; x++) {
+      const tile = getBeachTileAt(tiles, x, y);
+      if (tile === BeachTile.DeepWater) {
+        surface.drawSprite(
+          sheet,
+          0,
+          0,
+          TILE_SIZE,
+          TILE_SIZE,
+          x * TILE_SIZE,
+          y * TILE_SIZE,
+        );
+        continue;
+      }
+
+      const baseTileX = (tile * 2 - 1) * TILE_SIZE;
+      for (let qy = 0; qy < 2; qy++) {
+        for (let qx = 0; qx < 2; qx++) {
+          const nx = x + (qx === 0 ? -1 : 1);
+          const ny = y + (qy === 0 ? -1 : 1);
+          const horizMatch = getBeachTileAt(tiles, nx, y) >= tile ? 1 : 0;
+          const vertMatch = getBeachTileAt(tiles, x, ny) >= tile ? 1 : 0;
+
+          const sx = baseTileX + horizMatch * TILE_SIZE + qx * halfTile;
+          const sy = vertMatch * TILE_SIZE + qy * halfTile;
+          surface.drawSprite(
+            sheet,
+            sx,
+            sy,
+            halfTile,
+            halfTile,
+            x * TILE_SIZE + qx * halfTile,
+            y * TILE_SIZE + qy * halfTile,
+          );
+        }
+      }
+    }
+  }
+}
 
 export interface LevelState {
   width: number;
   height: number;
   entities: EntityState[];
+  backgroundTiles?: BeachTile[][];
 }
 
 function getColumnLetter(colIndex: number): string {
@@ -30,6 +111,46 @@ export function createLevel(width: number, height: number): LevelState {
     height,
     entities: [],
   };
+}
+
+export function createHubLevel(): LevelState {
+  const level = createLevel(15, 11);
+
+  // Ascii drawing
+  const beachTiles = `
+DDDDWWWWWWDDDDD
+DWWSSSSSSSWWDDD
+DWSSSSGSSSSWWWD
+DDWSGGGGGGGGSWD
+DDWSGGGGGGGSSWD
+DDWSGGGGGGGSWWD
+DWGGGGGGGGGGSSD
+DWWGGGGGGGGSSWD
+DDWSGGGGGSSSWDD
+DWWWSSSSSSWWDDD
+DDDWWWWWWWWDDDD
+  `;
+  level.backgroundTiles = beachTiles
+    .trim()
+    .split("\n")
+    .map((row) =>
+      row.split("").map((c) => {
+        switch (c) {
+          case "D":
+            return BeachTile.DeepWater;
+          case "W":
+            return BeachTile.Water;
+          case "S":
+            return BeachTile.Sand;
+          case "G":
+            return BeachTile.Grass;
+          default:
+            throw new Error(`Unknown tile: ${c}`);
+        }
+      }),
+    );
+
+  return level;
 }
 
 export function levelInBound(level: LevelState, p: Point): boolean {
@@ -92,17 +213,21 @@ export function renderLevel(
   const boardSurface = new Surface(boardW, boardH);
 
   // Draw background grid tiles
-  for (let y = 0; y < level.height; y++) {
-    for (let x = 0; x < level.width; x++) {
-      const isAlt = (x + y) % 2 === 1;
-      const tileColor = isAlt ? rgba(35, 35, 35) : rgba(45, 45, 45);
-      boardSurface.fillRect(
-        x * TILE_SIZE,
-        y * TILE_SIZE,
-        TILE_SIZE,
-        TILE_SIZE,
-        tileColor,
-      );
+  if (level.backgroundTiles) {
+    renderBeachTiles(boardSurface, level, level.backgroundTiles);
+  } else {
+    for (let y = 0; y < level.height; y++) {
+      for (let x = 0; x < level.width; x++) {
+        const isAlt = (x + y) % 2 === 1;
+        const tileColor = isAlt ? rgba(35, 35, 35) : rgba(45, 45, 45);
+        boardSurface.fillRect(
+          x * TILE_SIZE,
+          y * TILE_SIZE,
+          TILE_SIZE,
+          TILE_SIZE,
+          tileColor,
+        );
+      }
     }
   }
 

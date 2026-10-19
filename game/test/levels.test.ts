@@ -25,7 +25,7 @@ function setPlayerPos(game: GameState, email: string, x: number, y: number) {
 describe("Data-driven game architecture & spec/levels.md", () => {
   it("new players are asked what they look like before joining the hub", () => {
     let game = createGame();
-    assert.equal(game.hubLevel.width, 11);
+    assert.equal(game.hubLevel.width, 15);
     assert.equal(game.hubLevel.height, 11);
     assert.deepEqual(game.players, {});
 
@@ -66,10 +66,13 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     assert.deepEqual(restored, game);
   });
 
-  it("shared hub world is an 11x11 scene with no enemies", () => {
+  it("shared hub world has beach background tiles and no enemies", () => {
     const game = createGame();
     assert.equal(levelHasEnemies(game.hubLevel), false);
     assert.equal(game.hubLevel.entities.length, 0);
+    assert.ok(game.hubLevel.backgroundTiles);
+    assert.equal(game.hubLevel.backgroundTiles.length, 11);
+    assert.equal(game.hubLevel.backgroundTiles[0].length, 15);
   });
 
   it("players can move freely and overlap on the same tile in the hub", () => {
