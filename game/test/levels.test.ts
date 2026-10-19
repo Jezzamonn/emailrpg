@@ -329,7 +329,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     );
   });
 
-  it("when a player dies, they spawn back in the hub world", () => {
+  it("when a player dies, shows the level where they died with a death message, then requires choosing restart or island", () => {
     let game = joinGame(createGame(), "alice@example.com");
     const alice = game.players["alice@example.com"];
 
@@ -347,19 +347,62 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     game.hubLevel.entities = game.hubLevel.entities.filter((e) => e.playerId !== alice.email);
 
     // Alice waits; ortho enemy moves south to (2, 2) and kills her
-    const res = doPlayerAction(game, "alice@example.com", "wait");
-    const updatedAlice = res.game.players["alice@example.com"];
+    const deathRes = doPlayerAction(game, "alice@example.com", "wait");
+    const deadAlice = deathRes.game.players["alice@example.com"];
 
-    // Alice should be spawned back in the hub world
-    assert.equal(updatedAlice.currentLevel, undefined);
+    // Alice should NOT immediately be back on the beach; she still sees the level where she died
+    assert.equal(deadAlice.state, "dead");
+    assert.ok(deadAlice.currentLevel);
+    assert.equal(deadAlice.currentLevel.width, 5);
+    assert.equal(deadAlice.currentLevel.height, 5);
     assert.equal(
-      res.game.hubLevel.entities.some((e) => e.playerId === alice.email),
+      deathRes.game.hubLevel.entities.some((e) => e.playerId === alice.email),
+      false,
+    );
+    assert.ok(deathRes.messages.some((m) => /you died/i.test(m)));
+
+    // Attempting to move or wait while dead is rejected; player must pick restart or island
+    const invalidMoveRes = doPlayerAction(deathRes.game, "alice@example.com", "up 1");
+    assert.equal(invalidMoveRes.template, "error");
+    assert.match(invalidMoveRes.additionalData.error, /you died/i);
+    assert.equal(invalidMoveRes.game.players["alice@example.com"].state, "dead");
+
+    const invalidWaitRes = doPlayerAction(deathRes.game, "alice@example.com", "wait");
+    assert.equal(invalidWaitRes.template, "error");
+    assert.equal(invalidWaitRes.game.players["alice@example.com"].state, "dead");
+
+    // Option 1: Restart the level
+    const restartRes = doPlayerAction(deathRes.game, "alice@example.com", "restart");
+    const restartedAlice = restartRes.game.players["alice@example.com"];
+    assert.equal(restartRes.template, "turn");
+    assert.equal(restartedAlice.state, "active");
+    assert.ok(restartedAlice.currentLevel);
+    assert.deepEqual(restartedAlice.p, { x: 2, y: 2 });
+    assert.equal(
+      restartedAlice.currentLevel.entities.some(
+        (e) => e.type === "player" && e.playerId === alice.email && e.p.x === 2 && e.p.y === 2,
+      ),
       true,
     );
-    // The player entity in hub is at updatedAlice.p
-    const hubPlayerEntity = res.game.hubLevel.entities.find((e) => e.playerId === alice.email)!;
-    assert.deepEqual(hubPlayerEntity.p, updatedAlice.p);
-    assert.ok(res.messages.some((m) => m.includes("wake up back on the beach")));
+    assert.equal(
+      restartedAlice.currentLevel.entities.some(
+        (e) => e.type === "ortho" && e.p.x === 2 && e.p.y === 1,
+      ),
+      true,
+    );
+
+    // Option 2: Go back to the island
+    const islandRes = doPlayerAction(deathRes.game, "alice@example.com", "island");
+    const islandAlice = islandRes.game.players["alice@example.com"];
+    assert.equal(islandRes.template, "turn");
+    assert.equal(islandAlice.state, "active");
+    assert.equal(islandAlice.currentLevel, undefined);
+    assert.equal(
+      islandRes.game.hubLevel.entities.some((e) => e.playerId === alice.email),
+      true,
+    );
+    const hubPlayerEntity = islandRes.game.hubLevel.entities.find((e) => e.playerId === alice.email)!;
+    assert.deepEqual(hubPlayerEntity.p, islandAlice.p);
   });
 
   it("moving into a default beach portal transports player to the linked dungeon", () => {

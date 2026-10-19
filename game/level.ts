@@ -99,6 +99,7 @@ function renderBeachTiles(
 }
 
 export interface LevelState {
+  name?: string;
   width: number;
   height: number;
   entities: EntityState[];

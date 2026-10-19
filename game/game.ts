@@ -19,7 +19,7 @@ import {
 } from "./level.ts";
 import { Dirs, type Point, Points, parseColumnLetters } from "./lib/common.ts";
 
-export type UserState = "awaiting_customization" | "active";
+export type UserState = "awaiting_customization" | "active" | "dead";
 
 export interface PlayerState {
   email: string;
@@ -27,6 +27,9 @@ export interface PlayerState {
   appearance?: PlayerAppearance;
   p: Point;
   currentLevel?: LevelState;
+  currentLevelName?: string;
+  initialLevel?: LevelState;
+  initialP?: Point;
 }
 
 export interface GameState {
@@ -149,7 +152,11 @@ function customizePlayer(
 }
 
 function placePlayerInHub(game: GameState, player: PlayerState): void {
+  player.state = "active";
   delete player.currentLevel;
+  delete player.currentLevelName;
+  delete player.initialLevel;
+  delete player.initialP;
   player.p = findUnoccupiedHubPosition(game.hubLevel);
   game.hubLevel.entities = game.hubLevel.entities.filter(
     (e) => e.playerId !== player.email,
@@ -162,12 +169,141 @@ function placePlayerInHub(game: GameState, player: PlayerState): void {
   });
 }
 
+function enterDungeon(
+  game: GameState,
+  player: PlayerState,
+  targetLevelStr: string,
+): void {
+  const { level: newLevel, playerStart } =
+    createDungeonForLevel(targetLevelStr);
+
+  const currentLevel = getPlayerLevel(game, player);
+  // Remove player from current level and hub level so they no longer show up in hub
+  currentLevel.entities = currentLevel.entities.filter(
+    (e) => e.playerId !== player.email,
+  );
+  game.hubLevel.entities = game.hubLevel.entities.filter(
+    (e) => e.playerId !== player.email,
+  );
+
+  player.state = "active";
+  player.p = { ...playerStart };
+  newLevel.entities.push({
+    type: "player",
+    p: { ...player.p },
+    playerId: player.email,
+    appearance: player.appearance,
+  });
+  player.currentLevel = newLevel;
+  player.currentLevelName = newLevel.name ?? targetLevelStr;
+  player.initialLevel = structuredClone(newLevel);
+  player.initialP = { ...player.p };
+}
+
+function restartPlayerLevel(game: GameState, player: PlayerState): void {
+  player.state = "active";
+  if (player.initialLevel) {
+    const restoredLevel = structuredClone(player.initialLevel);
+    const existingPlayer = restoredLevel.entities.find(
+      (e) => e.type === "player" && e.playerId === player.email,
+    );
+    if (existingPlayer) {
+      player.p = { ...existingPlayer.p };
+      existingPlayer.appearance = player.appearance;
+    } else {
+      if (player.initialP) {
+        player.p = { ...player.initialP };
+      }
+      restoredLevel.entities.push({
+        type: "player",
+        p: { ...player.p },
+        playerId: player.email,
+        appearance: player.appearance,
+      });
+    }
+    player.currentLevel = restoredLevel;
+    return;
+  }
+
+  const levelName = player.currentLevelName ?? player.currentLevel?.name;
+  if (levelName != null) {
+    enterDungeon(game, player, levelName);
+    return;
+  }
+
+  if (player.currentLevel) {
+    const existingPlayer = player.currentLevel.entities.find(
+      (e) => e.type === "player" && e.playerId === player.email,
+    );
+    if (!existingPlayer) {
+      player.currentLevel.entities.push({
+        type: "player",
+        p: { ...player.p },
+        playerId: player.email,
+        appearance: player.appearance,
+      });
+    }
+    player.initialLevel = structuredClone(player.currentLevel);
+    player.initialP = { ...player.p };
+    return;
+  }
+
+  enterDungeon(game, player, "0");
+}
+
 function takePlayerTurn(
   game: GameState,
   player: PlayerState,
   command: string,
 ): string[] {
+  if (player.state === "dead") {
+    let action;
+    try {
+      action = parseAction(command);
+    } catch {
+      throw new Error(
+        'You died! You must choose to "restart" the level or go back to the "island".',
+      );
+    }
+    if (action.type === "restart") {
+      restartPlayerLevel(game, player);
+      return [];
+    }
+    if (action.type === "island") {
+      placePlayerInHub(game, player);
+      return [];
+    }
+    throw new Error(
+      'You died! You must choose to "restart" the level or go back to the "island".',
+    );
+  }
+
+  if (player.currentLevel && !player.initialLevel) {
+    player.initialLevel = structuredClone(player.currentLevel);
+    player.initialP = { ...player.p };
+  }
+
   const action = parseAction(command);
+
+  if (action.type === "restart") {
+    if (!player.currentLevel) {
+      throw new Error(
+        `Something's wrong with that command: "${command.trim()}". Try something like "up 2", "a1" or "wait".`,
+      );
+    }
+    restartPlayerLevel(game, player);
+    return [];
+  }
+
+  if (action.type === "island") {
+    if (!player.currentLevel) {
+      throw new Error(
+        `Something's wrong with that command: "${command.trim()}". Try something like "up 2", "a1" or "wait".`,
+      );
+    }
+    placePlayerInHub(game, player);
+    return [];
+  }
 
   const level = getPlayerLevel(game, player);
   if (action.type === "move" && !action.isValid(levelHasEnemies(level))) {
@@ -226,25 +362,7 @@ function takePlayerTurn(
       if (targetLevelStr.toLowerCase() === "hub") {
         placePlayerInHub(game, player);
       } else {
-        const { level: newLevel, playerStart } =
-          createDungeonForLevel(targetLevelStr);
-
-        // Remove player from current level and hub level so they no longer show up in hub
-        level.entities = level.entities.filter(
-          (e) => e.playerId !== player.email,
-        );
-        game.hubLevel.entities = game.hubLevel.entities.filter(
-          (e) => e.playerId !== player.email,
-        );
-
-        player.p = { ...playerStart };
-        newLevel.entities.push({
-          type: "player",
-          p: { ...player.p },
-          playerId: player.email,
-          appearance: player.appearance,
-        });
-        player.currentLevel = newLevel;
+        enterDungeon(game, player, targetLevelStr);
       }
 
       return messages;
@@ -260,21 +378,27 @@ function takePlayerTurn(
   }
 
   // Then the enemies get their turn.
-  const killedPlayerIds: string[] = [];
+  const killedPlayerIds = new Set<string>();
   const steppedLevel = stepLevelEnemies(level, (playerId) => {
-    killedPlayerIds.push(playerId);
+    killedPlayerIds.add(playerId);
   });
-  setPlayerLevel(game, player, steppedLevel);
 
   for (const killedId of killedPlayerIds) {
+    steppedLevel.entities = steppedLevel.entities.filter(
+      (e) => !(e.type === "player" && e.playerId === killedId),
+    );
     const killedPlayer = game.players[killedId];
     if (killedPlayer) {
-      placePlayerInHub(game, killedPlayer);
+      killedPlayer.state = "dead";
     }
     if (killedId === player.email) {
-      messages.push("Oh no, you got got! You wake up back on the beach...");
+      messages.push(
+        'Oh no, you died! Reply "restart" to restart the level, or "island" to go back to the island.',
+      );
     }
   }
+
+  setPlayerLevel(game, player, steppedLevel);
 
   return messages;
 }

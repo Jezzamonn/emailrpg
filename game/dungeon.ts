@@ -118,6 +118,7 @@ export function createPregeneratedDungeon(
   }));
 
   return {
+    name: def.name,
     width: def.width,
     height: def.height,
     entities,

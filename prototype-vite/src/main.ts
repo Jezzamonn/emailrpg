@@ -141,6 +141,9 @@ function renderUI() {
   if (game.players[activeEmail]?.state === "awaiting_customization") {
     replyInput.placeholder = "Describe your look (e.g. 'ponytail, blonde hair, light skin, blue clothes')...";
     replySubmitBtn.textContent = "Send Customization";
+  } else if (game.players[activeEmail]?.state === "dead") {
+    replyInput.placeholder = "You died! Enter 'restart' or 'island'...";
+    replySubmitBtn.textContent = "Send Choice";
   } else {
     replyInput.placeholder = "Enter command (e.g. up, down 2, a1, m10, wait)...";
     replySubmitBtn.textContent = "Send Command";
