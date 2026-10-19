@@ -1,10 +1,10 @@
 import Handlebars from "handlebars";
 import { convert } from "html-to-text";
-import welcomeTemplateSource from "./welcome.html";
-import introTemplateSource from "./intro.html";
-import turnTemplateSource from "./turn.html";
-import errorTemplateSource from "./error.html";
-import customizationErrorTemplateSource from "./customization-error.html";
+import welcomeTemplateSource from "./template/welcome.html";
+import introTemplateSource from "./template/intro.html";
+import turnTemplateSource from "./template/turn.html";
+import errorTemplateSource from "./template/error.html";
+import customizationErrorTemplateSource from "./template/customization-error.html";
 
 export type ImageIdAndBytes = Record<string, Uint8Array>;
 
