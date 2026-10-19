@@ -184,5 +184,9 @@ export function renderCustomizationImages(): ImageIdAndBytes {
 
 function renderPlayerView(game: GameState, address: string): Uint8Array {
   const player = game.players[address]!;
-  return renderLevelToGif(getPlayerLevel(game, player), {}, address);
+  return renderLevelToGif(
+    getPlayerLevel(game, player),
+    { completedLevels: player.completedLevels },
+    address,
+  );
 }

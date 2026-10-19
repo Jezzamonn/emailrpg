@@ -6,6 +6,7 @@ import {
   doPlayerAction,
   getPlayerLevel,
   createPregeneratedDungeon,
+  isLevelUnlocked,
   parseAction,
   levelEntitiesAt,
   levelHasEnemies,
@@ -398,6 +399,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
       p: { x: 4, y: 4 },
       targetLevel: "Bat Belfry",
     });
+    game.players["alice@example.com"].completedLevels = ["Rat Cellar"];
 
     setPlayerPos(game, "alice@example.com", 4, 3);
     setPlayerPos(game, "bob@example.com", 1, 1);
@@ -628,5 +630,88 @@ describe("Data-driven game architecture & spec/levels.md", () => {
       true,
     );
     assert.ok(winRes.messages.some((m) => /reward/i.test(m) && /Rat Cellar/i.test(m)));
+  });
+
+  it("isLevelUnlocked requires levels to be beaten in order", () => {
+    assert.equal(isLevelUnlocked("Rat Cellar", []), true);
+    assert.equal(isLevelUnlocked("Bat Belfry", []), false);
+    assert.equal(isLevelUnlocked("Wolf Warrens", []), false);
+    assert.equal(isLevelUnlocked("The Gauntlet", []), false);
+
+    assert.equal(isLevelUnlocked("Rat Cellar", ["Rat Cellar"]), true);
+    assert.equal(isLevelUnlocked("Bat Belfry", ["Rat Cellar"]), true);
+    assert.equal(isLevelUnlocked("Wolf Warrens", ["Rat Cellar"]), false);
+    assert.equal(isLevelUnlocked("The Gauntlet", ["Rat Cellar"]), false);
+
+    assert.equal(isLevelUnlocked("Wolf Warrens", ["Rat Cellar", "Bat Belfry"]), true);
+    assert.equal(isLevelUnlocked("The Gauntlet", ["Rat Cellar", "Bat Belfry"]), false);
+    assert.equal(
+      isLevelUnlocked("The Gauntlet", ["Rat Cellar", "Bat Belfry", "Wolf Warrens"]),
+      true,
+    );
+  });
+
+  it("blocks moving into a locked level portal with closed portal error, and unlocks after beating prior level", () => {
+    let game = joinGame(createGame(), "alice@example.com");
+
+    // Bat Belfry portal is at (10, 3) in the hub level; place Alice at (10, 2)
+    setPlayerPos(game, "alice@example.com", 10, 2);
+
+    const lockedRes = doPlayerAction(game, "alice@example.com", "down 1");
+    assert.equal(lockedRes.template, "error");
+    assert.match(
+      lockedRes.additionalData.error,
+      /that portal seems closed\. Maybe you gotta beat some other levels first/i,
+    );
+    assert.equal(lastGame(lockedRes).players["alice@example.com"].currentLevel, undefined);
+    assert.deepEqual(lastGame(lockedRes).players["alice@example.com"].p, { x: 10, y: 2 });
+
+    // Once Alice has beaten Rat Cellar, she can enter Bat Belfry
+    game.players["alice@example.com"].completedLevels = ["Rat Cellar"];
+    const unlockedRes = doPlayerAction(game, "alice@example.com", "down 1");
+    assert.equal(unlockedRes.template, "turn");
+    assert.ok(lastGame(unlockedRes).players["alice@example.com"].currentLevel);
+    assert.equal(
+      lastGame(unlockedRes).players["alice@example.com"].currentLevel?.name,
+      createPregeneratedDungeon("Bat Belfry").name,
+    );
+  });
+
+  it("renders locked level portals with small fire and unlocked level portals with regular fire", () => {
+    const portal = {
+      type: "portal" as const,
+      p: { x: 0, y: 0 },
+      targetLevel: "Bat Belfry",
+    };
+
+    const lockedEntitySurface = new Surface(TILE_SIZE, TILE_SIZE);
+    const unlockedEntitySurface = new Surface(TILE_SIZE, TILE_SIZE);
+    renderEntity(lockedEntitySurface, portal, 0, { x: 0, y: 0 }, []);
+    renderEntity(unlockedEntitySurface, portal, 0, { x: 0, y: 0 }, ["Rat Cellar"]);
+
+    const smallFireCount = lockedEntitySurface.pixels.filter((p) => p !== 0).length;
+    const regularFireCount = unlockedEntitySurface.pixels.filter((p) => p !== 0).length;
+    assert.ok(smallFireCount > 0, "small fire should render visible pixels");
+    assert.ok(
+      regularFireCount > smallFireCount,
+      `regular fire (${regularFireCount} px) should have more pixels than small fire (${smallFireCount} px)`,
+    );
+
+    const level = createLevel(2, 1);
+    level.entities = [portal];
+
+    const lockedSurface = new Surface(2 * TILE_SIZE, TILE_SIZE);
+    const unlockedSurface = new Surface(2 * TILE_SIZE, TILE_SIZE);
+
+    renderLevel(lockedSurface, level, 0, {
+      showCoordinates: false,
+      completedLevels: [],
+    });
+    renderLevel(unlockedSurface, level, 0, {
+      showCoordinates: false,
+      completedLevels: ["Rat Cellar"],
+    });
+
+    assert.notDeepEqual(lockedSurface.pixels, unlockedSurface.pixels);
   });
 });

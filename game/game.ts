@@ -1,5 +1,5 @@
 import { parseAction } from "./action.ts";
-import { createDungeonForLevel } from "./dungeon.ts";
+import { createDungeonForLevel, isLevelUnlocked } from "./dungeon.ts";
 import { stepLevelEnemies } from "./enemy.ts";
 import {
   type ClothesColor,
@@ -375,6 +375,11 @@ function takePlayerTurn(
     );
     if (portal) {
       const targetLevelStr = getPortalTargetLevel(portal) ?? "0";
+      if (!isLevelUnlocked(targetLevelStr, player.completedLevels ?? [])) {
+        throw new Error(
+          "That portal seems closed. Maybe you gotta beat some other levels first.",
+        );
+      }
       const nextGame =
         targetLevelStr.toLowerCase() === "hub"
           ? placePlayerInHub(newGame, address)

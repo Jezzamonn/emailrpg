@@ -1,5 +1,5 @@
 { "frames": {
-   "fire 0.aseprite": {
+   "fire (fire) 0.aseprite": {
     "frame": { "x": 0, "y": 0, "w": 30, "h": 30 },
     "rotated": false,
     "trimmed": false,
@@ -7,7 +7,7 @@
     "sourceSize": { "w": 30, "h": 30 },
     "duration": 100
    },
-   "fire 1.aseprite": {
+   "fire (fire) 1.aseprite": {
     "frame": { "x": 30, "y": 0, "w": 30, "h": 30 },
     "rotated": false,
     "trimmed": false,

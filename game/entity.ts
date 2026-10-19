@@ -14,11 +14,13 @@ import ponytailBlondePng from "../assets/exported/character-ponytail-blonde.png"
 import ponytailBrownPng from "../assets/exported/character-ponytail-brown.png";
 import ponytailBlackPng from "../assets/exported/character-ponytail-black.png";
 import firePng from "../assets/exported/fire.png";
+import fireSmallPng from "../assets/exported/fire-small.png";
 import enemyRatPng from "../assets/exported/enemy-rat.png";
 import enemyBatPng from "../assets/exported/enemy-bat.png";
 import enemyHorsePng from "../assets/exported/enemy-horse.png";
 import enemySnailPng from "../assets/exported/enemy-snail.png";
 import enemySnailSleepPng from "../assets/exported/enemy-snail-sleep.png";
+import { isLevelUnlocked } from "./dungeon.ts";
 
 // Size of a tile in pixels, which is also the size of the player sprites.
 export const TILE_SIZE = 30;
@@ -119,6 +121,7 @@ export function renderEntity(
   entity: EntityState,
   frame: number = 0,
   offset: Point = { x: 0, y: 0 },
+  completedLevels: string[] = [],
 ): void {
   const px = entity.p.x * TILE_SIZE + offset.x;
   const py = entity.p.y * TILE_SIZE + offset.y;
@@ -140,7 +143,10 @@ export function renderEntity(
   }
 
   if (entity.type === "portal") {
-    const sheet = getSprite(firePng);
+    const targetLevel = getPortalTargetLevel(entity);
+    const unlocked =
+      targetLevel == null || isLevelUnlocked(targetLevel, completedLevels);
+    const sheet = getSprite(unlocked ? firePng : fireSmallPng);
     surface.drawSprite(
       sheet,
       (frame % 2) * TILE_SIZE,

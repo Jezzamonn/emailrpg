@@ -13,6 +13,7 @@ export interface GifOptions {
   borderColor?: number;
   rng?: () => number;
   seed?: string;
+  completedLevels?: string[];
 }
 
 /**

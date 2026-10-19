@@ -11,9 +11,11 @@ echo "Exporting assets to $OUT_DIR..."
 aseprite -b assets/beachtiles.aseprite --save-as "$OUT_DIR/beachtiles.png"
 
 # Fire
-aseprite -b assets/fire.aseprite \
-  --sheet "$OUT_DIR/fire.png" \
-  --data "$OUT_DIR/fire.json"
+for layer in fire fire-small; do
+  aseprite -b --layer "$layer" assets/fire.aseprite \
+    --sheet "$OUT_DIR/$layer.png" \
+    --data "$OUT_DIR/$layer.json"
+done
 
 # Character, in sections using different palettes for the different parts
 

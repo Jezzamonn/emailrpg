@@ -201,6 +201,7 @@ export interface LevelRenderOptions {
   borderColor?: number;
   rng?: () => number;
   seed?: string;
+  completedLevels?: string[];
 }
 
 export function renderLevel(
@@ -209,6 +210,7 @@ export function renderLevel(
   frame: number = 0,
   options: LevelRenderOptions = {},
   forPlayer?: string,
+  completedLevels?: string[],
 ): void {
   const showCoordinates =
     options.showCoordinates ??
@@ -326,7 +328,13 @@ export function renderLevel(
           } while (usedOffsets.has(`${offset.x},${offset.y}`) && attempts < 10);
           usedOffsets.add(`${offset.x},${offset.y}`);
         }
-        renderEntity(boardSurface, entity, frame, offset);
+        renderEntity(
+          boardSurface,
+          entity,
+          frame,
+          offset,
+          completedLevels ?? options.completedLevels ?? [],
+        );
       }
     }
   }

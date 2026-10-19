@@ -106,6 +106,13 @@ export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
   },
 ];
 
+const DUNGEON_ALIASES: string[][] = [
+  ["Rat Cellar", "rat-and-bat"],
+  ["Bat Belfry", "snail"],
+  ["Wolf Warrens", "horsies"],
+  ["The Gauntlet", "everyone"],
+];
+
 export function getDungeonDefinition(
   indexOrName: number | string = 0,
 ): DungeonDefinition {
@@ -116,6 +123,13 @@ export function getDungeonDefinition(
       (d) => d.name.toLowerCase() === trimmed.toLowerCase(),
     );
     if (byName) return byName;
+
+    const aliasIdx = DUNGEON_ALIASES.findIndex((aliases) =>
+      aliases.some((name) => name.toLowerCase() === trimmed.toLowerCase()),
+    );
+    if (aliasIdx !== -1 && PREGENERATED_DUNGEONS[aliasIdx]) {
+      return PREGENERATED_DUNGEONS[aliasIdx]!;
+    }
 
     // 2. Exact match on id string (e.g. "1", "2")
     const byId = PREGENERATED_DUNGEONS.find((d) => d.id.toString() === trimmed);
@@ -170,4 +184,34 @@ export function createDungeonForLevel(
     level: createPregeneratedDungeon(indexOrName),
     playerStart: { ...def.playerStart },
   };
+}
+
+export function isLevelUnlocked(
+  indexOrName: number | string,
+  completedLevels: string[] = [],
+): boolean {
+  if (
+    typeof indexOrName === "string" &&
+    indexOrName.trim().toLowerCase() === "hub"
+  ) {
+    return true;
+  }
+  const def = getDungeonDefinition(indexOrName);
+  const index = PREGENERATED_DUNGEONS.findIndex((d) => d.id === def.id);
+  if (index <= 0) {
+    return true;
+  }
+  const completedLower = completedLevels.map((l) => l.trim().toLowerCase());
+  for (let i = 0; i < index; i++) {
+    const prev = PREGENERATED_DUNGEONS[i]!;
+    const aliases = DUNGEON_ALIASES[i] ?? [];
+    if (
+      !completedLower.includes(prev.name.toLowerCase()) &&
+      !aliases.some((a) => completedLower.includes(a.toLowerCase())) &&
+      !completedLower.includes(prev.id.toString())
+    ) {
+      return false;
+    }
+  }
+  return true;
 }
