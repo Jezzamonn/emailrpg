@@ -29,13 +29,11 @@ export default {
 			subject,
 			body,
 		});
-		game = result.game;
 		const emailContent = result.response;
 
 		const reply = createMimeMessage();
 		if (messageId) {
 			reply.setHeader('In-Reply-To', messageId);
-			reply.setHeader('References', messageId);
 		}
 		reply.setSender(message.to);
 		reply.setRecipient(message.from);
@@ -64,5 +62,6 @@ export default {
 		});
 
 		await message.reply(new EmailMessage(message.to, message.from, reply.asRaw()));
+		game = result.game;
 	},
 };
