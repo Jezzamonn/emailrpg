@@ -9,7 +9,10 @@ import {
 import { getBanterFont } from "./lib/font.ts";
 import { decodePng } from "./lib/png.ts";
 import { seededRandom } from "./lib/util.ts";
+import { ENEMY_MOVE_VECTORS } from "./enemy.ts";
 import beachTilesPng from "../assets/exported/beachtiles.png";
+import positionPng from "../assets/exported/position.png";
+import warningPng from "../assets/exported/warning.png";
 
 // psuedo enum but just a number
 export const BeachTile = {
@@ -27,6 +30,88 @@ function getBeachTilesSheet(): SpriteSheet {
     beachTilesSheet = decodePng(new Uint8Array(beachTilesPng));
   }
   return beachTilesSheet;
+}
+
+let positionSheet: SpriteSheet | null = null;
+let warningSheet: SpriteSheet | null = null;
+
+function getPositionSheet(): SpriteSheet {
+  if (!positionSheet) {
+    positionSheet = decodePng(new Uint8Array(positionPng));
+  }
+  return positionSheet;
+}
+
+function getWarningSheet(): SpriteSheet {
+  if (!warningSheet) {
+    warningSheet = decodePng(new Uint8Array(warningPng));
+  }
+  return warningSheet;
+}
+
+// Squares the player(s) can move to: 1 or 2 spaces in a cardinal direction.
+function playerMoveTargets(level: LevelState, forPlayer?: string): Point[] {
+  const players = level.entities.filter(
+    (e) =>
+      e.type === "player" && (forPlayer == null || e.playerId === forPlayer),
+  );
+  const targets: Point[] = [];
+  for (const player of players) {
+    for (const dir of [
+      { x: 1, y: 0 },
+      { x: -1, y: 0 },
+      { x: 0, y: 1 },
+      { x: 0, y: -1 },
+    ]) {
+      for (let dist = 1; dist <= 2; dist++) {
+        const p = { x: player.p.x + dir.x * dist, y: player.p.y + dir.y * dist };
+        if (levelInBound(level, p)) targets.push(p);
+      }
+    }
+  }
+  return targets;
+}
+
+// Squares any enemy could move to on its next step.
+function enemyMoveTargets(level: LevelState): Point[] {
+  const targets: Point[] = [];
+  for (const enemy of level.entities) {
+    if (entityGroupOf(enemy.type) !== "enemy") continue;
+    // Sleeping slow enemies don't move next step.
+    if (enemy.type === "slow" && enemy.cooldown && enemy.cooldown > 0) continue;
+    const moveVectors =
+      enemy.type in ENEMY_MOVE_VECTORS
+        ? ENEMY_MOVE_VECTORS[enemy.type as keyof typeof ENEMY_MOVE_VECTORS]
+        : ENEMY_MOVE_VECTORS.ortho;
+    for (const move of moveVectors) {
+      const p = { x: enemy.p.x + move.x, y: enemy.p.y + move.y };
+      if (levelInBound(level, p)) targets.push(p);
+    }
+  }
+  return targets;
+}
+
+function renderMoveIndicators(
+  surface: Surface,
+  level: LevelState,
+  frame: number,
+  forPlayer?: string,
+): void {
+  const draw = (sheet: SpriteSheet, points: Point[]) => {
+    for (const p of points) {
+      surface.drawSprite(
+        sheet,
+        (frame % 2) * TILE_SIZE,
+        0,
+        TILE_SIZE,
+        TILE_SIZE,
+        p.x * TILE_SIZE,
+        p.y * TILE_SIZE,
+      );
+    }
+  };
+  draw(getPositionSheet(), playerMoveTargets(level, forPlayer));
+  draw(getWarningSheet(), enemyMoveTargets(level));
 }
 
 function getBeachTileAt(
@@ -282,6 +367,11 @@ export function renderLevel(
         );
       }
     }
+  }
+
+  // Show move indicators in dungeons only (the hub has beach tiles and no enemies)
+  if (level.backgroundTiles == null && levelHasEnemies(level)) {
+    renderMoveIndicators(boardSurface, level, frame, forPlayer);
   }
 
   // 1. Loop over each entity and put them in a data structure indexed by coordinate

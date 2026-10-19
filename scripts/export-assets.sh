@@ -105,4 +105,11 @@ for layer in rat bat horse snail snail-sleep; do
     --data "$OUT_DIR/enemy-$layer.json"
 done
 
+# Positions (player move targets and enemy warnings)
+for layer in position warning; do
+  aseprite -b --layer "$layer" assets/positions.aseprite \
+    --sheet "$OUT_DIR/$layer.png" \
+    --data "$OUT_DIR/$layer.json"
+done
+
 echo "Done!"
