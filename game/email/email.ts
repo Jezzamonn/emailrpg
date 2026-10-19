@@ -100,13 +100,13 @@ export function handleIncomingEmail(
   const response = renderEmailTemplate(request, address, action);
 
   // Return updated game and response
-  return { game: action.game, response };
+  return { game: action.games[action.games.length - 1]!, response };
 }
 
 function renderEmailTemplate(
   request: EmailRequest,
   address: string,
-  { game, template, messages, additionalData }: ActionResponse,
+  { games, template, messages, additionalData }: ActionResponse,
 ): EmailResponse {
   const from = "game@emailrpg.com";
   const incomingSubject = request.subject || "";
@@ -114,6 +114,7 @@ function renderEmailTemplate(
     ? incomingSubject
     : `Re: ${incomingSubject}`;
 
+  const lastGame = games[games.length - 1]!;
   let images: ImageIdAndBytes = {};
 
   let html: string;
@@ -123,15 +124,18 @@ function renderEmailTemplate(
       html = renderWelcomeEmail({ images });
       break;
     case "intro":
-      images["game_view"] = renderPlayerView(game, address);
+      images["game_view"] = renderPlayerView(lastGame, address);
       html = renderIntroEmail({ images });
       break;
     case "turn":
-      images["game_view"] = renderPlayerView(game, address);
+      images["game_view"] = renderPlayerView(games[0]!, address);
+      if (games.length > 1) {
+        images["hub_view"] = renderPlayerView(lastGame, address);
+      }
       html = renderTurnEmail({ images, messages });
       break;
     case "error":
-      images["game_view"] = renderPlayerView(game, address);
+      images["game_view"] = renderPlayerView(lastGame, address);
       html = renderErrorEmail({ images, ...additionalData });
       break;
     case "customization_error":

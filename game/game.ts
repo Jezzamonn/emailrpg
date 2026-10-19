@@ -23,8 +23,7 @@ import { choose } from "./lib/util.ts";
 export type UserState =
   | "awaiting_customization"
   | "active"
-  | "dead"
-  | "victory";
+  | "dead";
 
 export interface PlayerState {
   email: string;
@@ -59,7 +58,7 @@ export type ResponseTemplate =
   | "customization_error";
 
 export interface ActionResponse {
-  game: GameState;
+  games: GameState[];
   // Template for the response.
   template: ResponseTemplate;
   // Things that happened this turn, to tell the player about.
@@ -72,15 +71,12 @@ export function doPlayerAction(
   address: string,
   emailContent: string,
 ): ActionResponse {
-  // Work on a copy so the caller's game state is never modified.
-  const newGame = structuredClone(game);
-
-  const player = newGame.players[address];
+  const player = game.players[address];
   // If no player with the email: Add a new player!
   if (player == null) {
-    addNewPlayer(newGame, address);
+    const newGame = addNewPlayer(game, address);
     return {
-      game: newGame,
+      games: [newGame],
       template: "newplayer",
       messages: [],
       additionalData: {},
@@ -89,18 +85,19 @@ export function doPlayerAction(
 
   // Responding to customization
   if (player.state === "awaiting_customization") {
+    let newGame: GameState;
     try {
-      customizePlayer(newGame, player, emailContent);
+      newGame = customizePlayer(game, address, emailContent);
     } catch (err) {
       return {
-        game: newGame,
+        games: [game],
         template: "customization_error",
         messages: [],
         additionalData: { error: (err as Error).message },
       };
     }
     return {
-      game: newGame,
+      games: [newGame],
       template: "intro",
       messages: [],
       additionalData: {},
@@ -109,12 +106,12 @@ export function doPlayerAction(
 
   // Otherwise: Take the next action for that player.
   try {
-    const messages = takePlayerTurn(newGame, player, emailContent);
-    return { game: newGame, template: "turn", messages, additionalData: {} };
+    const { messages, games } = takePlayerTurn(game, address, emailContent);
+    return { games, template: "turn", messages, additionalData: {} };
   } catch (err) {
     const errorMsg = (err as Error).message;
     return {
-      game: newGame,
+      games: [game],
       template: "error",
       messages: [errorMsg],
       additionalData: { error: errorMsg },
@@ -138,58 +135,68 @@ function setPlayerLevel(
   }
 }
 
-function addNewPlayer(game: GameState, address: string): void {
+function addNewPlayer(game: GameState, address: string): GameState {
+  const newGame = structuredClone(game);
   // Players aren't placed in the world until they've said what they look like.
-  game.players[address] = {
+  newGame.players[address] = {
     email: address,
     state: "awaiting_customization",
     p: { x: 0, y: 0 },
     completedLevels: [],
   };
+  return newGame;
 }
 
 function customizePlayer(
   game: GameState,
-  player: PlayerState,
+  address: string,
   description: string,
-): void {
-  player.appearance = parseAppearance(description);
+): GameState {
+  const appearance = parseAppearance(description);
+  const newGame = structuredClone(game);
+  const player = newGame.players[address]!;
+  player.appearance = appearance;
   player.state = "active";
-  placePlayerInHub(game, player);
+  return placePlayerInHub(newGame, address);
 }
 
-function placePlayerInHub(game: GameState, player: PlayerState): void {
+function placePlayerInHub(game: GameState, address: string): GameState {
+  const newGame = structuredClone(game);
+  const player = newGame.players[address]!;
   player.state = "active";
   delete player.currentLevel;
   delete player.currentLevelName;
   delete player.initialLevel;
   delete player.initialP;
-  player.p = findUnoccupiedHubPosition(game.hubLevel);
-  game.hubLevel.entities = game.hubLevel.entities.filter(
+  player.p = findUnoccupiedHubPosition(newGame.hubLevel);
+  newGame.hubLevel.entities = newGame.hubLevel.entities.filter(
     (e) => e.playerId !== player.email,
   );
-  game.hubLevel.entities.push({
+  newGame.hubLevel.entities.push({
     type: "player",
     p: { ...player.p },
     playerId: player.email,
     appearance: player.appearance,
   });
+  return newGame;
 }
 
 function enterDungeon(
   game: GameState,
-  player: PlayerState,
+  address: string,
   targetLevelStr: string,
-): void {
+): GameState {
+  const newGame = structuredClone(game);
+  const player = newGame.players[address]!;
   const { level: newLevel, playerStart } =
     createDungeonForLevel(targetLevelStr);
 
-  const currentLevel = getPlayerLevel(game, player);
+  const currentLevel = getPlayerLevel(newGame, player);
   // Remove player from current level and hub level so they no longer show up in hub
   currentLevel.entities = currentLevel.entities.filter(
     (e) => e.playerId !== player.email,
   );
-  game.hubLevel.entities = game.hubLevel.entities.filter(
+  newGame.hubLevel.entities = newGame.hubLevel.entities.filter(
     (e) => e.playerId !== player.email,
   );
 
@@ -205,9 +212,12 @@ function enterDungeon(
   player.currentLevelName = newLevel.name ?? targetLevelStr;
   player.initialLevel = structuredClone(newLevel);
   player.initialP = { ...player.p };
+  return newGame;
 }
 
-function restartPlayerLevel(game: GameState, player: PlayerState): void {
+function restartPlayerLevel(game: GameState, address: string): GameState {
+  const newGame = structuredClone(game);
+  const player = newGame.players[address]!;
   player.state = "active";
   if (player.initialLevel) {
     const restoredLevel = structuredClone(player.initialLevel);
@@ -229,13 +239,12 @@ function restartPlayerLevel(game: GameState, player: PlayerState): void {
       });
     }
     player.currentLevel = restoredLevel;
-    return;
+    return newGame;
   }
 
   const levelName = player.currentLevelName ?? player.currentLevel?.name;
   if (levelName != null) {
-    enterDungeon(game, player, levelName);
-    return;
+    return enterDungeon(newGame, address, levelName);
   }
 
   if (player.currentLevel) {
@@ -252,21 +261,19 @@ function restartPlayerLevel(game: GameState, player: PlayerState): void {
     }
     player.initialLevel = structuredClone(player.currentLevel);
     player.initialP = { ...player.p };
-    return;
+    return newGame;
   }
 
-  enterDungeon(game, player, "0");
+  return enterDungeon(newGame, address, "0");
 }
 
 function takePlayerTurn(
   game: GameState,
-  player: PlayerState,
+  address: string,
   command: string,
-): string[] {
-  if (player.state === "victory") {
-    placePlayerInHub(game, player);
-    return [];
-  }
+): { messages: string[]; games: GameState[] } {
+  const newGame = structuredClone(game);
+  const player = newGame.players[address]!;
 
   if (player.state === "dead") {
     let action;
@@ -278,12 +285,10 @@ function takePlayerTurn(
       );
     }
     if (action.type === "restart") {
-      restartPlayerLevel(game, player);
-      return [];
+      return { messages: [], games: [restartPlayerLevel(newGame, address)] };
     }
     if (action.type === "island") {
-      placePlayerInHub(game, player);
-      return [];
+      return { messages: [], games: [placePlayerInHub(newGame, address)] };
     }
     throw new Error(
       'You died! You must choose to "restart" the level or go back to the "island".',
@@ -303,8 +308,7 @@ function takePlayerTurn(
         `Something's wrong with that command: "${command.trim()}". Try something like "up 2", "a1" or "wait".`,
       );
     }
-    restartPlayerLevel(game, player);
-    return [];
+    return { messages: [], games: [restartPlayerLevel(newGame, address)] };
   }
 
   if (action.type === "island") {
@@ -313,11 +317,10 @@ function takePlayerTurn(
         `Something's wrong with that command: "${command.trim()}". Try something like "up 2", "a1" or "wait".`,
       );
     }
-    placePlayerInHub(game, player);
-    return [];
+    return { messages: [], games: [placePlayerInHub(newGame, address)] };
   }
 
-  const level = getPlayerLevel(game, player);
+  const level = getPlayerLevel(newGame, player);
   const hadEnemies = levelHasEnemies(level);
   if (action.type === "move" && !action.isValid(hadEnemies)) {
     throw new Error(
@@ -372,13 +375,12 @@ function takePlayerTurn(
     );
     if (portal) {
       const targetLevelStr = getPortalTargetLevel(portal) ?? "0";
-      if (targetLevelStr.toLowerCase() === "hub") {
-        placePlayerInHub(game, player);
-      } else {
-        enterDungeon(game, player, targetLevelStr);
-      }
+      const nextGame =
+        targetLevelStr.toLowerCase() === "hub"
+          ? placePlayerInHub(newGame, address)
+          : enterDungeon(newGame, address, targetLevelStr);
 
-      return messages;
+      return { messages, games: [nextGame] };
     }
 
     player.p = target;
@@ -400,7 +402,7 @@ function takePlayerTurn(
     steppedLevel.entities = steppedLevel.entities.filter(
       (e) => !(e.type === "player" && e.playerId === killedId),
     );
-    const killedPlayer = game.players[killedId];
+    const killedPlayer = newGame.players[killedId];
     if (killedPlayer) {
       killedPlayer.state = "dead";
     }
@@ -411,7 +413,7 @@ function takePlayerTurn(
     }
   }
 
-  setPlayerLevel(game, player, steppedLevel);
+  setPlayerLevel(newGame, player, steppedLevel);
 
   if (
     player.currentLevel &&
@@ -419,7 +421,6 @@ function takePlayerTurn(
     !levelHasEnemies(steppedLevel) &&
     killedPlayerIds.size === 0
   ) {
-    player.state = "victory";
     const completedLevelName =
       player.currentLevelName ?? steppedLevel.name ?? "Dungeon";
     player.completedLevels ??= [];
@@ -427,11 +428,13 @@ function takePlayerTurn(
       player.completedLevels.push(completedLevelName);
     }
     messages.push(
-      `You beat ${completedLevelName}! You got the reward for ${completedLevelName}! Reply with anything to return to the island.`,
+      `You beat ${completedLevelName}! You got the reward for ${completedLevelName}!`,
     );
+    const hubGame = placePlayerInHub(newGame, address);
+    return { messages, games: [newGame, hubGame] };
   }
 
-  return messages;
+  return { messages, games: [newGame] };
 }
 
 const HAIR_TYPES: HairType[] = ["short", "ponytail", "bald"];

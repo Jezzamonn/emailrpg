@@ -172,6 +172,36 @@ describe("Handlebars Email Templating", () => {
     assert.match(res3.response.text, /You go ahead and do that thing/);
     assert.match(res3.response.text, /\[Game Board\]/);
     assert.ok(res3.response.images["game_view"]);
+    assert.equal(res3.response.images["hub_view"], undefined);
     assert.equal(/<[^>]+>/.test(res3.response.text), false);
+
+    // Phase 4: Winning a level renders both the beaten level and the hub island underneath it
+    game = res3.game;
+    const player = game.players[userEmail];
+    player.currentLevel = {
+      name: "Rat Cellar",
+      width: 5,
+      height: 5,
+      entities: [
+        { type: "player", p: { x: 2, y: 2 }, playerId: userEmail, appearance: player.appearance },
+        { type: "ortho", p: { x: 2, y: 1 } },
+      ],
+    };
+    player.currentLevelName = "Rat Cellar";
+    player.p = { x: 2, y: 2 };
+    game.hubLevel.entities = game.hubLevel.entities.filter((e) => e.playerId !== userEmail);
+
+    const resWin = handleIncomingEmail(game, {
+      from: userEmail,
+      body: "up 1",
+    });
+    assert.ok(resWin.response.images["game_view"]);
+    assert.ok(resWin.response.images["hub_view"]);
+    assert.notDeepEqual(resWin.response.images["game_view"], resWin.response.images["hub_view"]);
+    const gameViewIdx = resWin.response.html.indexOf('cid:game_view');
+    const hubViewIdx = resWin.response.html.indexOf('cid:hub_view');
+    assert.ok(gameViewIdx !== -1 && hubViewIdx !== -1 && gameViewIdx < hubViewIdx);
+    assert.equal(resWin.game.players[userEmail].currentLevel, undefined);
+    assert.equal(resWin.game.players[userEmail].state, "active");
   });
 });

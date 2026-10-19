@@ -1,4 +1,5 @@
 <p>You go ahead and do that thing. Here's what happens next:</p>
 {{#each messages}}<p><strong>{{this}}</strong></p>
 {{/each}}<p><img src="cid:game_view" alt="Game Board" style="image-rendering: pixelated;"></p>
-<p>Pretty cool right??? Now say what to do after that:</p>
+{{#if images.hub_view}}<p><img src="cid:hub_view" alt="Game Board" style="image-rendering: pixelated;"></p>
+{{/if}}<p>Pretty cool right??? Now say what to do after that:</p>

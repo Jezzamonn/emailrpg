@@ -20,9 +20,13 @@ import {
   stepLevelEnemies,
 } from "../index.ts";
 
+function lastGame(res: { games: GameState[] }): GameState {
+  return res.games[res.games.length - 1]!;
+}
+
 function joinGame(game: GameState, email: string): GameState {
-  game = doPlayerAction(game, email, "").game;
-  return doPlayerAction(game, email, "short brown hair, medium skin, blue clothes").game;
+  game = lastGame(doPlayerAction(game, email, ""));
+  return lastGame(doPlayerAction(game, email, "short brown hair, medium skin, blue clothes"));
 }
 
 function setPlayerPos(game: GameState, email: string, x: number, y: number) {
@@ -40,13 +44,13 @@ describe("Data-driven game architecture & spec/levels.md", () => {
 
     const res1 = doPlayerAction(game, "alice@example.com", "hi");
     assert.equal(res1.template, "newplayer");
-    game = res1.game;
+    game = lastGame(res1);
     assert.equal(game.players["alice@example.com"].state, "awaiting_customization");
     assert.equal(game.hubLevel.entities.filter((e) => e.type === "player").length, 0);
 
     const res2 = doPlayerAction(game, "alice@example.com", "Ponytail, blonde, dark skin, green");
     assert.equal(res2.template, "intro");
-    game = res2.game;
+    game = lastGame(res2);
     const alice = game.players["alice@example.com"];
     assert.equal(alice.state, "active");
     assert.deepEqual(alice.appearance, {
@@ -60,21 +64,21 @@ describe("Data-driven game architecture & spec/levels.md", () => {
 
   it("returns customization_error when character styling traits are missing, and allows bald without hair color", () => {
     let game = createGame();
-    game = doPlayerAction(game, "alice@example.com", "hi").game;
+    game = lastGame(doPlayerAction(game, "alice@example.com", "hi"));
 
     const badRes = doPlayerAction(game, "alice@example.com", "Ponytail, blonde");
     assert.equal(badRes.template, "customization_error");
     assert.match(badRes.additionalData.error, /skin color/);
     assert.match(badRes.additionalData.error, /clothes color/);
-    assert.equal(badRes.game.players["alice@example.com"].state, "awaiting_customization");
-    assert.equal(badRes.game.hubLevel.entities.filter((e) => e.type === "player").length, 0);
+    assert.equal(lastGame(badRes).players["alice@example.com"].state, "awaiting_customization");
+    assert.equal(lastGame(badRes).hubLevel.entities.filter((e) => e.type === "player").length, 0);
 
-    const baldRes = doPlayerAction(badRes.game, "alice@example.com", "bald, light skin, red clothes");
+    const baldRes = doPlayerAction(lastGame(badRes), "alice@example.com", "bald, light skin, red clothes");
     assert.equal(baldRes.template, "intro");
-    assert.equal(baldRes.game.players["alice@example.com"].state, "active");
-    assert.equal(baldRes.game.players["alice@example.com"].appearance?.hairType, "bald");
-    assert.equal(baldRes.game.players["alice@example.com"].appearance?.skinColor, "light");
-    assert.equal(baldRes.game.players["alice@example.com"].appearance?.clothesColor, "red");
+    assert.equal(lastGame(baldRes).players["alice@example.com"].state, "active");
+    assert.equal(lastGame(baldRes).players["alice@example.com"].appearance?.hairType, "bald");
+    assert.equal(lastGame(baldRes).players["alice@example.com"].appearance?.skinColor, "light");
+    assert.equal(lastGame(baldRes).players["alice@example.com"].appearance?.clothesColor, "red");
   });
 
   it("doPlayerAction does not modify the game state passed in", () => {
@@ -88,7 +92,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     let game = createGame();
     game = joinGame(game, "alice@example.com");
     game = joinGame(game, "bob@example.com");
-    game = doPlayerAction(game, "alice@example.com", "down 1").game;
+    game = lastGame(doPlayerAction(game, "alice@example.com", "down 1"));
 
     const restored: GameState = JSON.parse(JSON.stringify(game));
     assert.deepEqual(restored, game);
@@ -116,7 +120,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     const res = doPlayerAction(game, "alice@example.com", "down 3");
     assert.equal(res.template, "turn");
     assert.deepEqual(res.messages, []);
-    game = res.game;
+    game = lastGame(res);
 
     assert.deepEqual(game.players["alice@example.com"].p, { x: 2, y: 5 });
     assert.equal(levelEntitiesAt(game.hubLevel, { x: 2, y: 5 }).length, 2);
@@ -129,7 +133,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     const res = doPlayerAction(game, "alice@example.com", "left");
     assert.equal(res.template, "error");
     assert.match(res.additionalData.error, /edge of the world/);
-    assert.deepEqual(res.game.players["alice@example.com"].p, { x: 0, y: 0 });
+    assert.deepEqual(lastGame(res).players["alice@example.com"].p, { x: 0, y: 0 });
   });
 
   it("bad commands produce an error response instead of a move", () => {
@@ -149,11 +153,11 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     const illegal = doPlayerAction(game, "alice@example.com", "up 3");
     assert.equal(illegal.template, "error");
     assert.match(illegal.additionalData.error, /only move 2 spaces/);
-    assert.deepEqual(illegal.game.players["alice@example.com"].p, { x: 3, y: 5 });
+    assert.deepEqual(lastGame(illegal).players["alice@example.com"].p, { x: 3, y: 5 });
 
     const valid = doPlayerAction(game, "alice@example.com", "up 1");
     assert.equal(valid.template, "turn");
-    assert.deepEqual(valid.game.players["alice@example.com"].p, { x: 3, y: 4 });
+    assert.deepEqual(lastGame(valid).players["alice@example.com"].p, { x: 3, y: 4 });
   });
 
   it("parses commands from spec/commands.md", () => {
@@ -195,18 +199,18 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     const resA1 = doPlayerAction(game, "alice@example.com", "a1");
     assert.equal(resA1.template, "turn");
     assert.deepEqual(resA1.messages, []);
-    assert.deepEqual(resA1.game.players["alice@example.com"].p, { x: 0, y: 10 });
+    assert.deepEqual(lastGame(resA1).players["alice@example.com"].p, { x: 0, y: 10 });
 
     // Move to m10: col m=12, row 10 -> y = 11 - 10 = 1
-    const resM10 = doPlayerAction(resA1.game, "alice@example.com", "m10");
+    const resM10 = doPlayerAction(lastGame(resA1), "alice@example.com", "m10");
     assert.deepEqual(resM10.messages, []);
-    assert.deepEqual(resM10.game.players["alice@example.com"].p, { x: 12, y: 1 });
+    assert.deepEqual(lastGame(resM10).players["alice@example.com"].p, { x: 12, y: 1 });
 
     // Out of bounds coordinate command is rejected
-    const resOob = doPlayerAction(resM10.game, "alice@example.com", "z99");
+    const resOob = doPlayerAction(lastGame(resM10), "alice@example.com", "z99");
     assert.equal(resOob.messages.length, 1);
     assert.equal(resOob.messages[0], "You can't go that way, that's the edge of the world!");
-    assert.deepEqual(resOob.game.players["alice@example.com"].p, { x: 12, y: 1 });
+    assert.deepEqual(lastGame(resOob).players["alice@example.com"].p, { x: 12, y: 1 });
   });
 
   it("restricts coordinate commands when enemies are present in the level", () => {
@@ -220,26 +224,26 @@ describe("Data-driven game architecture & spec/levels.md", () => {
 
     // Moving more than 2 spaces away (e.g. d5, which is y=2, 3 spaces north) should not work
     const illegalDist = doPlayerAction(game, "alice@example.com", "d5");
-    assert.deepEqual(illegalDist.game.players["alice@example.com"].p, { x: 3, y: 5 });
+    assert.deepEqual(lastGame(illegalDist).players["alice@example.com"].p, { x: 3, y: 5 });
     assert.equal(illegalDist.messages[0], "Whoa there! With enemies around you can only move 2 spaces at a time.");
 
     // Moving diagonally (e.g. e3, which is dx=1, dy=-1) should not work
     const illegalDiag = doPlayerAction(game, "alice@example.com", "e3");
-    assert.deepEqual(illegalDiag.game.players["alice@example.com"].p, { x: 3, y: 5 });
+    assert.deepEqual(lastGame(illegalDiag).players["alice@example.com"].p, { x: 3, y: 5 });
     assert.equal(illegalDiag.messages[0], "Whoa there! With enemies around you can only move 2 spaces at a time.");
 
     // Moving to the same tile (distance 0) should not work
     const illegalSame = doPlayerAction(game, "alice@example.com", "d2");
-    assert.deepEqual(illegalSame.game.players["alice@example.com"].p, { x: 3, y: 5 });
+    assert.deepEqual(lastGame(illegalSame).players["alice@example.com"].p, { x: 3, y: 5 });
     assert.equal(illegalSame.messages[0], "Whoa there! With enemies around you can only move 2 spaces at a time.");
 
     // Moving 1 space in cardinal direction (d3 is y=4, 1 space north) works!
     const valid1 = doPlayerAction(game, "alice@example.com", "d3");
-    assert.deepEqual(valid1.game.players["alice@example.com"].p, { x: 3, y: 4 });
+    assert.deepEqual(lastGame(valid1).players["alice@example.com"].p, { x: 3, y: 4 });
 
     // Moving 2 spaces in cardinal direction (b3 is x=1, y=4, 2 spaces west) works!
-    const valid2 = doPlayerAction(valid1.game, "alice@example.com", "b3");
-    assert.deepEqual(valid2.game.players["alice@example.com"].p, { x: 1, y: 4 });
+    const valid2 = doPlayerAction(lastGame(valid1), "alice@example.com", "b3");
+    assert.deepEqual(lastGame(valid2).players["alice@example.com"].p, { x: 1, y: 4 });
   });
 
   it("squashes enemies when moving to their coordinate", () => {
@@ -253,7 +257,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     alice.currentLevel.entities.push({ type: "basic", p: { x: 3, y: 4 } });
 
     const res = doPlayerAction(game, "alice@example.com", "d3");
-    assert.deepEqual(res.game.players["alice@example.com"].p, { x: 3, y: 4 });
+    assert.deepEqual(lastGame(res).players["alice@example.com"].p, { x: 3, y: 4 });
     assert.ok(res.messages.includes("You squash an enemy!"));
   });
 
@@ -377,7 +381,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
 
     const res = doPlayerAction(game, "alice@example.com", "down 1");
     // Player moved into portal and into dungeon
-    assert.ok(res.game.players["alice@example.com"].currentLevel);
+    assert.ok(lastGame(res).players["alice@example.com"].currentLevel);
   });
 
   it("moving into a portal moves player into their own dungeon and removes them from hub world", () => {
@@ -401,7 +405,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
 
     // Alice steps south onto portal
     const res = doPlayerAction(game, "alice@example.com", "down 1");
-    const newGame = res.game;
+    const newGame = lastGame(res);
     const alice = newGame.players["alice@example.com"];
 
     // Alice is now in her own level/dungeon
@@ -448,7 +452,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
 
     // Alice waits; ortho enemy moves south to (2, 2) and kills her
     const deathRes = doPlayerAction(game, "alice@example.com", "wait");
-    const deadAlice = deathRes.game.players["alice@example.com"];
+    const deadAlice = lastGame(deathRes).players["alice@example.com"];
 
     // Alice should NOT immediately be back on the beach; she still sees the level where she died
     assert.equal(deadAlice.state, "dead");
@@ -456,24 +460,24 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     assert.equal(deadAlice.currentLevel.width, 5);
     assert.equal(deadAlice.currentLevel.height, 5);
     assert.equal(
-      deathRes.game.hubLevel.entities.some((e) => e.playerId === alice.email),
+      lastGame(deathRes).hubLevel.entities.some((e) => e.playerId === alice.email),
       false,
     );
     assert.ok(deathRes.messages.some((m) => /you died/i.test(m)));
 
     // Attempting to move or wait while dead is rejected; player must pick restart or island
-    const invalidMoveRes = doPlayerAction(deathRes.game, "alice@example.com", "up 1");
+    const invalidMoveRes = doPlayerAction(lastGame(deathRes), "alice@example.com", "up 1");
     assert.equal(invalidMoveRes.template, "error");
     assert.match(invalidMoveRes.additionalData.error, /you died/i);
-    assert.equal(invalidMoveRes.game.players["alice@example.com"].state, "dead");
+    assert.equal(lastGame(invalidMoveRes).players["alice@example.com"].state, "dead");
 
-    const invalidWaitRes = doPlayerAction(deathRes.game, "alice@example.com", "wait");
+    const invalidWaitRes = doPlayerAction(lastGame(deathRes), "alice@example.com", "wait");
     assert.equal(invalidWaitRes.template, "error");
-    assert.equal(invalidWaitRes.game.players["alice@example.com"].state, "dead");
+    assert.equal(lastGame(invalidWaitRes).players["alice@example.com"].state, "dead");
 
     // Option 1: Restart the level
-    const restartRes = doPlayerAction(deathRes.game, "alice@example.com", "restart");
-    const restartedAlice = restartRes.game.players["alice@example.com"];
+    const restartRes = doPlayerAction(lastGame(deathRes), "alice@example.com", "restart");
+    const restartedAlice = lastGame(restartRes).players["alice@example.com"];
     assert.equal(restartRes.template, "turn");
     assert.equal(restartedAlice.state, "active");
     assert.ok(restartedAlice.currentLevel);
@@ -492,16 +496,16 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     );
 
     // Option 2: Go back to the island
-    const islandRes = doPlayerAction(deathRes.game, "alice@example.com", "island");
-    const islandAlice = islandRes.game.players["alice@example.com"];
+    const islandRes = doPlayerAction(lastGame(deathRes), "alice@example.com", "island");
+    const islandAlice = lastGame(islandRes).players["alice@example.com"];
     assert.equal(islandRes.template, "turn");
     assert.equal(islandAlice.state, "active");
     assert.equal(islandAlice.currentLevel, undefined);
     assert.equal(
-      islandRes.game.hubLevel.entities.some((e) => e.playerId === alice.email),
+      lastGame(islandRes).hubLevel.entities.some((e) => e.playerId === alice.email),
       true,
     );
-    const hubPlayerEntity = islandRes.game.hubLevel.entities.find((e) => e.playerId === alice.email)!;
+    const hubPlayerEntity = lastGame(islandRes).hubLevel.entities.find((e) => e.playerId === alice.email)!;
     assert.deepEqual(hubPlayerEntity.p, islandAlice.p);
   });
 
@@ -513,19 +517,19 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     setPlayerPos(game, "alice@example.com", 4, 2);
 
     const res = doPlayerAction(game, "alice@example.com", "down 1");
-    const alice = res.game.players["alice@example.com"];
+    const alice = lastGame(res).players["alice@example.com"];
 
     assert.ok(alice.currentLevel);
     assert.equal(alice.currentLevel.width, 7);
     assert.equal(alice.currentLevel.height, 7);
     assert.deepEqual(alice.p, { x: 3, y: 5 });
     assert.equal(
-      res.game.hubLevel.entities.some((e) => e.playerId === "alice@example.com"),
+      lastGame(res).hubLevel.entities.some((e) => e.playerId === "alice@example.com"),
       false,
     );
   });
 
-  it("when a player beats a level, shows the beaten level with reward info, records it in completedLevels, and any reply returns to the hub", () => {
+  it("when a player beats a level, returns both the beaten level state and the hub state, records it in completedLevels, and immediately puts player back on the hub", () => {
     let game = joinGame(createGame(), "alice@example.com");
     const alice = game.players["alice@example.com"];
 
@@ -545,34 +549,30 @@ describe("Data-driven game architecture & spec/levels.md", () => {
 
     // Alice moves up 1 and kills the last enemy
     const winRes = doPlayerAction(game, "alice@example.com", "up 1");
-    const victoriousAlice = winRes.game.players["alice@example.com"];
-
-    // Shows the level she just beat (still in currentLevel, not yet in hub)
     assert.equal(winRes.template, "turn");
-    assert.equal(victoriousAlice.state, "victory");
-    assert.ok(victoriousAlice.currentLevel);
-    assert.equal(levelHasEnemies(victoriousAlice.currentLevel), false);
-    assert.deepEqual(victoriousAlice.p, { x: 2, y: 1 });
+    assert.equal(winRes.games.length, 2);
+
+    // First game state is the beaten level after squashing
+    const beatenState = winRes.games[0]!;
+    const beatenAlice = beatenState.players["alice@example.com"];
+    assert.ok(beatenAlice.currentLevel);
+    assert.equal(levelHasEnemies(beatenAlice.currentLevel), false);
+    assert.deepEqual(beatenAlice.p, { x: 2, y: 1 });
     assert.equal(
-      winRes.game.hubLevel.entities.some((e) => e.playerId === alice.email),
+      beatenState.hubLevel.entities.some((e) => e.playerId === alice.email),
       false,
     );
 
-    // Records the beaten level in completedLevels and includes reward message
-    assert.deepEqual(victoriousAlice.completedLevels, ["Rat Cellar"]);
-    assert.ok(winRes.messages.some((m) => /reward/i.test(m) && /Rat Cellar/i.test(m)));
-
-    // Replying with anything puts the player back in the hub level
-    const returnRes = doPlayerAction(winRes.game, "alice@example.com", "awesome!!");
-    const hubAlice = returnRes.game.players["alice@example.com"];
-
-    assert.equal(returnRes.template, "turn");
+    // Second (final) game state has the player immediately back on the hub island
+    const hubState = winRes.games[1]!;
+    const hubAlice = hubState.players["alice@example.com"];
     assert.equal(hubAlice.state, "active");
     assert.equal(hubAlice.currentLevel, undefined);
     assert.deepEqual(hubAlice.completedLevels, ["Rat Cellar"]);
     assert.equal(
-      returnRes.game.hubLevel.entities.some((e) => e.playerId === alice.email),
+      hubState.hubLevel.entities.some((e) => e.playerId === alice.email),
       true,
     );
+    assert.ok(winRes.messages.some((m) => /reward/i.test(m) && /Rat Cellar/i.test(m)));
   });
 });
