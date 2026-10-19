@@ -18,6 +18,7 @@ import {
   type LevelState,
 } from "./level.ts";
 import { Dirs, type Point, Points, parseColumnLetters } from "./lib/common.ts";
+import { choose } from "./lib/util.ts";
 
 export type UserState =
   | "awaiting_customization"
@@ -86,7 +87,7 @@ export function doPlayerAction(
     };
   }
 
-  // They've been asked what they look like, so this email is their answer.
+  // Responding to customization
   if (player.state === "awaiting_customization") {
     try {
       customizePlayer(newGame, player, emailContent);
@@ -443,29 +444,40 @@ function parseAppearance(description: string): PlayerAppearance {
   const find = <T extends string>(options: T[]): T | undefined =>
     options.find((o) => words.includes(o));
 
-  const hairType = find(HAIR_TYPES);
-  const hairColor = find(HAIR_COLORS);
-  const skinColor = find(SKIN_COLORS);
-  const clothesColor = find(CLOTHES_COLORS);
+  let hairType: HairType | undefined;
+  let hairColor: HairColor | undefined;
+  let skinColor: SkinColor | undefined;
+  let clothesColor: ClothesColor | undefined;
 
-  const missing: string[] = [];
-  if (!hairType) {
-    missing.push(`hair style (${HAIR_TYPES.join(", ")})`);
-  }
-  if (hairType !== "bald" && !hairColor) {
-    missing.push(`hair color (${HAIR_COLORS.join(", ")})`);
-  }
-  if (!skinColor) {
-    missing.push(`skin color (${SKIN_COLORS.join(", ")})`);
-  }
-  if (!clothesColor) {
-    missing.push(`clothes color (${CLOTHES_COLORS.join(", ")})`);
-  }
+  if (words.includes("whatever")) {
+    // Random player
+    hairType = choose(HAIR_TYPES);
+    hairColor = choose(HAIR_COLORS);
+    skinColor = choose(SKIN_COLORS);
+    clothesColor = choose(CLOTHES_COLORS);
+  } else {
+    hairType = find(HAIR_TYPES);
+    hairColor = find(HAIR_COLORS);
+    skinColor = find(SKIN_COLORS);
+    clothesColor = find(CLOTHES_COLORS);
 
-  if (missing.length > 0) {
-    throw new Error(
-      `Could not understand what you look like! Please include your ${missing.join(", ")}.`,
-    );
+    const missing: string[] = [];
+    if (!hairType) {
+      missing.push(`hair style (${HAIR_TYPES.join(", ")})`);
+    }
+    if (hairType !== "bald" && !hairColor) {
+      missing.push(`hair color (${HAIR_COLORS.join(", ")})`);
+    }
+    if (!skinColor) {
+      missing.push(`skin color (${SKIN_COLORS.join(", ")})`);
+    }
+    if (!clothesColor) {
+      missing.push(`clothes color (${CLOTHES_COLORS.join(", ")})`);
+    }
+
+    if (missing.length > 0) {
+      throw new Error(`${missing.join(", ")}`);
+    }
   }
 
   return {
