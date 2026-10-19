@@ -10,7 +10,6 @@ import {
   levelEntitiesAt,
   levelHasEnemies,
   createLevel,
-  stepLevelEnemies,
   renderLevel,
   Surface,
   TILE_SIZE,
