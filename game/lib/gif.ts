@@ -11,6 +11,8 @@ export interface GifOptions {
   coordinateSides?: "all" | "bottom-left"; // default: "all"
   fontColor?: number;
   borderColor?: number;
+  rng?: () => number;
+  seed?: string;
 }
 
 /**
@@ -70,6 +72,7 @@ export function encodeSurfacesToGif(
 
 import { renderLevel, type LevelState } from "../level.ts";
 import { renderEntity, TILE_SIZE, type PlayerAppearance } from "../entity.ts";
+import { seededRandom } from "./util.ts";
 
 /**
  * Helper to render an array of player appearances side-by-side into an animated GIF.
@@ -128,8 +131,12 @@ export function renderLevelToGif(
   const frame0 = new Surface(width, height);
   const frame1 = new Surface(width, height);
 
-  renderLevel(frame0, level, 0, options, forPlayer);
-  renderLevel(frame1, level, 1, options, forPlayer);
+  const seed = options.seed ?? "entities";
+  const rng0 = seededRandom(seed);
+  const rng1 = seededRandom(seed);
+
+  renderLevel(frame0, level, 0, { ...options, rng: rng0 }, forPlayer);
+  renderLevel(frame1, level, 1, { ...options, rng: rng1 }, forPlayer);
 
   return encodeSurfacesToGif([frame0, frame1], options);
 }

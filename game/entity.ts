@@ -113,9 +113,10 @@ export function renderEntity(
   surface: Surface,
   entity: EntityState,
   frame: number = 0,
+  offset: Point = { x: 0, y: 0 },
 ): void {
-  const px = entity.p.x * TILE_SIZE;
-  const py = entity.p.y * TILE_SIZE;
+  const px = entity.p.x * TILE_SIZE + offset.x;
+  const py = entity.p.y * TILE_SIZE + offset.y;
 
   if (entity.type === "player" && entity.appearance) {
     // Each sprite sheet has one TILE_SIZE wide frame per animation frame.

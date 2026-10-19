@@ -9,6 +9,13 @@ import {
   parseAction,
   levelEntitiesAt,
   levelHasEnemies,
+  createLevel,
+  stepLevelEnemies,
+  renderLevel,
+  Surface,
+  TILE_SIZE,
+  Colors,
+  seededRandom,
   stepLevelEnemies,
 } from "../index.ts";
 
@@ -247,6 +254,76 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     const res = doPlayerAction(game, "alice@example.com", "d3");
     assert.deepEqual(res.game.players["alice@example.com"].p, { x: 3, y: 4 });
     assert.ok(res.messages.includes("You squash an enemy!"));
+  });
+
+  it("allows entities of the same type to occupy the same square and blocks different types", () => {
+    const level = createLevel(7, 7);
+    level.entities = [
+      { type: "player", p: { x: 3, y: 3 }, playerId: "p1" },
+      // Two ortho enemies at (2, 3) and (4, 3) both moving towards player at (3, 3)
+      { type: "ortho", p: { x: 2, y: 3 } },
+      { type: "ortho", p: { x: 4, y: 3 } },
+    ];
+    let killed = false;
+    const stepped = stepLevelEnemies(level, () => {
+      killed = true;
+    });
+    assert.equal(killed, true);
+    // Both ortho enemies moved to (3, 3) and occupy the same square
+    const enemiesAt3_3 = stepped.entities.filter(
+      (e) => e.p.x === 3 && e.p.y === 3 && e.type === "ortho",
+    );
+    assert.equal(enemiesAt3_3.length, 2);
+
+    // Now test that different types still block each other
+    const levelBlocked = createLevel(7, 7);
+    levelBlocked.entities = [
+      { type: "player", p: { x: 3, y: 5 }, playerId: "p1" },
+      { type: "ortho", p: { x: 3, y: 3 } }, // wants to move down towards (3, 4)
+      { type: "diag", p: { x: 3, y: 4 } },  // different enemy type at (3, 4)
+    ];
+    const steppedBlocked = stepLevelEnemies(levelBlocked);
+    const ortho = steppedBlocked.entities.find((e) => e.type === "ortho")!;
+    assert.notDeepEqual(ortho.p, { x: 3, y: 4 });
+  });
+
+  it("renders multiple entities on the same square with random shifts, consistent across frames", () => {
+    const level = createLevel(5, 5);
+    level.entities = [
+      { type: "ortho", p: { x: 2, y: 2 } },
+      { type: "ortho", p: { x: 2, y: 2 } },
+    ];
+
+    const s0 = new Surface(5 * TILE_SIZE, 5 * TILE_SIZE);
+    const s1 = new Surface(5 * TILE_SIZE, 5 * TILE_SIZE);
+
+    const rng0 = seededRandom("test-seed");
+    const rng1 = seededRandom("test-seed");
+
+    // Rendering with identical frame and matching copies of RNG should be identical
+    renderLevel(s0, level, 0, { showCoordinates: false, rng: rng0 });
+    renderLevel(s1, level, 0, { showCoordinates: false, rng: rng1 });
+
+    assert.deepEqual(s0.pixels, s1.pixels);
+
+    // Overlapping entities should occupy more red pixels than a single non-shifted entity
+    const singleLevel = createLevel(5, 5);
+    singleLevel.entities = [{ type: "ortho", p: { x: 2, y: 2 } }];
+    const sSingle = new Surface(5 * TILE_SIZE, 5 * TILE_SIZE);
+    renderLevel(sSingle, singleLevel, 0, { showCoordinates: false });
+
+    const redColor = Colors.Red >>> 0;
+    let singleCount = 0;
+    for (const p of sSingle.pixels) {
+      if ((p >>> 0) === redColor) singleCount++;
+    }
+
+    let multiCount = 0;
+    for (const p of s0.pixels) {
+      if ((p >>> 0) === redColor) multiCount++;
+    }
+
+    assert.ok(multiCount > singleCount);
   });
 
   it("enemies cannot move into portals, but players can", () => {

@@ -105,12 +105,13 @@ export function stepLevelEnemies(
         continue;
       }
 
-      // Check collision: enemies cannot walk on anything that isn't a player
+      // Check collision: entities of the same type can occupy the same square
       const obstacle = updatedEntities.find(
         (other) =>
           other !== entity &&
           other.p.x === newP.x &&
           other.p.y === newP.y &&
+          other.type !== entity.type &&
           entityGroupOf(other.type) !== "player"
       );
       if (obstacle) continue;

@@ -8,6 +8,7 @@ import {
 } from "./entity.ts";
 import { getBanterFont } from "./lib/font.ts";
 import { decodePng } from "./lib/png.ts";
+import { seededRandom } from "./lib/util.ts";
 import beachTilesPng from "../assets/exported/beachtiles.png";
 
 // psuedo enum but just a number
@@ -198,6 +199,8 @@ export interface LevelRenderOptions {
   coordinateSides?: "all" | "bottom-left";
   fontColor?: number;
   borderColor?: number;
+  rng?: () => number;
+  seed?: string;
 }
 
 export function renderLevel(
@@ -279,24 +282,52 @@ export function renderLevel(
     }
   }
 
-  // Draw entities (pick one player per tile, preferring forPlayer)
+  // 1. Loop over each entity and put them in a data structure indexed by coordinate
+  const entitiesByCoord = new Map<string, EntityState[]>();
+  for (const entity of level.entities) {
+    const key = `${entity.p.x},${entity.p.y}`;
+    const list = entitiesByCoord.get(key);
+    if (list) {
+      list.push(entity);
+    } else {
+      entitiesByCoord.set(key, [entity]);
+    }
+  }
+
+  // 2. Create a seeded random with a fixed seed
+  const rng = options.rng ?? seededRandom(options.seed ?? "entities");
+
+  // 3. Render entities, and if multiple entities are on the same tile shift them by a random amount
   for (let y = 0; y < level.height; y++) {
     for (let x = 0; x < level.width; x++) {
-      const entitiesOnTile = levelEntitiesAt(level, { x, y });
-      if (entitiesOnTile.length === 0) continue;
+      const entitiesOnTile = entitiesByCoord.get(`${x},${y}`);
+      if (!entitiesOnTile || entitiesOnTile.length === 0) continue;
 
-      let picked: EntityState;
-      const forPlayerEntity =
-        forPlayer != null
-          ? entitiesOnTile.find((e) => e.playerId === forPlayer)
-          : undefined;
-      if (forPlayerEntity) {
-        picked = forPlayerEntity;
-      } else {
-        picked =
-          entitiesOnTile.find((e) => e.type === "player") ?? entitiesOnTile[0];
+      const isShifted = entitiesOnTile.length > 1;
+      const sorted = entitiesOnTile.slice().sort((a, b) => {
+        if (forPlayer != null) {
+          if (a.playerId === forPlayer) return 1;
+          if (b.playerId === forPlayer) return -1;
+        }
+        return 0;
+      });
+
+      const usedOffsets = new Set<string>();
+      for (const entity of sorted) {
+        let offset: Point = { x: 0, y: 0 };
+        if (isShifted) {
+          let attempts = 0;
+          do {
+            offset = {
+              x: Math.floor(rng() * 7) - 3,
+              y: Math.floor(rng() * 7) - 3,
+            };
+            attempts++;
+          } while (usedOffsets.has(`${offset.x},${offset.y}`) && attempts < 10);
+          usedOffsets.add(`${offset.x},${offset.y}`);
+        }
+        renderEntity(boardSurface, entity, frame, offset);
       }
-      renderEntity(boardSurface, picked, frame);
     }
   }
 
