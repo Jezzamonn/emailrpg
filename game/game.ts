@@ -281,23 +281,18 @@ function takePlayerTurn(
       action = parseAction(command);
     } catch {
       throw new Error(
-        'You died! You must choose to "restart" the level or go back to the "island".',
+        'You died! You must choose to "restart" the level or "exit" to the island.',
       );
     }
     if (action.type === "restart") {
       return { messages: [], games: [restartPlayerLevel(newGame, address)] };
     }
-    if (action.type === "island") {
+    if (action.type === "exit") {
       return { messages: [], games: [placePlayerInHub(newGame, address)] };
     }
     throw new Error(
-      'You died! You must choose to "restart" the level or go back to the "island".',
+      'You died! You must choose to "restart" the level or "exit" to the island.',
     );
-  }
-
-  if (player.currentLevel && !player.initialLevel) {
-    player.initialLevel = structuredClone(player.currentLevel);
-    player.initialP = { ...player.p };
   }
 
   const action = parseAction(command);
@@ -311,13 +306,18 @@ function takePlayerTurn(
     return { messages: [], games: [restartPlayerLevel(newGame, address)] };
   }
 
-  if (action.type === "island") {
+  if (action.type === "exit") {
     if (!player.currentLevel) {
       throw new Error(
         `Something's wrong with that command: "${command.trim()}". Try something like "up 2", "a1" or "wait".`,
       );
     }
     return { messages: [], games: [placePlayerInHub(newGame, address)] };
+  }
+
+  if (player.currentLevel && !player.initialLevel) {
+    player.initialLevel = structuredClone(player.currentLevel);
+    player.initialP = { ...player.p };
   }
 
   const level = getPlayerLevel(newGame, player);
@@ -408,7 +408,7 @@ function takePlayerTurn(
     }
     if (killedId === player.email) {
       messages.push(
-        'Oh no, you died! Reply "restart" to restart the level, or "island" to go back to the island.',
+        'Oh no, you died! Reply "restart" to restart the level, or "exit" to go back to the island.',
       );
     }
   }

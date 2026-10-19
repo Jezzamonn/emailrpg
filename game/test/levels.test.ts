@@ -162,6 +162,9 @@ describe("Data-driven game architecture & spec/levels.md", () => {
 
   it("parses commands from spec/commands.md", () => {
     assert.equal(parseAction("wait").type, "wait");
+    assert.equal(parseAction("restart").type, "restart");
+    assert.equal(parseAction("exit").type, "exit");
+    assert.throws(() => parseAction("island"));
     const a = parseAction("south 2");
     assert.equal(a.type, "move");
     assert.equal(a.dist, 2);
@@ -433,7 +436,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     );
   });
 
-  it("when a player dies, shows the level where they died with a death message, then requires choosing restart or island", () => {
+  it("when a player dies, shows the level where they died with a death message, then requires choosing restart or exit", () => {
     let game = joinGame(createGame(), "alice@example.com");
     const alice = game.players["alice@example.com"];
 
@@ -465,7 +468,7 @@ describe("Data-driven game architecture & spec/levels.md", () => {
     );
     assert.ok(deathRes.messages.some((m) => /you died/i.test(m)));
 
-    // Attempting to move or wait while dead is rejected; player must pick restart or island
+    // Attempting to move or wait while dead is rejected; player must pick restart or exit
     const invalidMoveRes = doPlayerAction(lastGame(deathRes), "alice@example.com", "up 1");
     assert.equal(invalidMoveRes.template, "error");
     assert.match(invalidMoveRes.additionalData.error, /you died/i);
@@ -495,18 +498,69 @@ describe("Data-driven game architecture & spec/levels.md", () => {
       true,
     );
 
-    // Option 2: Go back to the island
-    const islandRes = doPlayerAction(lastGame(deathRes), "alice@example.com", "island");
-    const islandAlice = lastGame(islandRes).players["alice@example.com"];
-    assert.equal(islandRes.template, "turn");
-    assert.equal(islandAlice.state, "active");
-    assert.equal(islandAlice.currentLevel, undefined);
+    // Option 2: Exit back to the island
+    const exitRes = doPlayerAction(lastGame(deathRes), "alice@example.com", "exit");
+    const exitAlice = lastGame(exitRes).players["alice@example.com"];
+    assert.equal(exitRes.template, "turn");
+    assert.equal(exitAlice.state, "active");
+    assert.equal(exitAlice.currentLevel, undefined);
     assert.equal(
-      lastGame(islandRes).hubLevel.entities.some((e) => e.playerId === alice.email),
+      lastGame(exitRes).hubLevel.entities.some((e) => e.playerId === alice.email),
       true,
     );
-    const hubPlayerEntity = lastGame(islandRes).hubLevel.entities.find((e) => e.playerId === alice.email)!;
-    assert.deepEqual(hubPlayerEntity.p, islandAlice.p);
+    const hubPlayerEntity = lastGame(exitRes).hubLevel.entities.find((e) => e.playerId === alice.email)!;
+    assert.deepEqual(hubPlayerEntity.p, exitAlice.p);
+  });
+
+  it("allows restart and exit at any time while in a level", () => {
+    let game = joinGame(createGame(), "alice@example.com");
+    const alice = game.players["alice@example.com"];
+
+    // Cannot restart or exit while in the hub
+    assert.equal(doPlayerAction(game, "alice@example.com", "restart").template, "error");
+    assert.equal(doPlayerAction(game, "alice@example.com", "exit").template, "error");
+
+    // Place Alice in a dungeon
+    alice.currentLevel = {
+      width: 5,
+      height: 5,
+      entities: [
+        { type: "player", p: { x: 2, y: 4 }, playerId: alice.email },
+        { type: "ortho", p: { x: 2, y: 0 } },
+      ],
+    };
+    alice.p = { x: 2, y: 4 };
+    game.hubLevel.entities = game.hubLevel.entities.filter((e) => e.playerId !== alice.email);
+
+    // Alice moves up 1 (alive mid-level)
+    const moveRes = doPlayerAction(game, "alice@example.com", "up 1");
+    assert.equal(moveRes.template, "turn");
+    assert.deepEqual(lastGame(moveRes).players["alice@example.com"].p, { x: 2, y: 3 });
+
+    // Alice restarts mid-level while alive
+    const restartRes = doPlayerAction(lastGame(moveRes), "alice@example.com", "restart");
+    const restartedAlice = lastGame(restartRes).players["alice@example.com"];
+    assert.equal(restartRes.template, "turn");
+    assert.equal(restartedAlice.state, "active");
+    assert.ok(restartedAlice.currentLevel);
+    assert.deepEqual(restartedAlice.p, { x: 2, y: 4 });
+    assert.equal(
+      restartedAlice.currentLevel.entities.some(
+        (e) => e.type === "ortho" && e.p.x === 2 && e.p.y === 0,
+      ),
+      true,
+    );
+
+    // Alice exits mid-level while alive
+    const exitRes = doPlayerAction(lastGame(moveRes), "alice@example.com", "exit");
+    const exitedAlice = lastGame(exitRes).players["alice@example.com"];
+    assert.equal(exitRes.template, "turn");
+    assert.equal(exitedAlice.state, "active");
+    assert.equal(exitedAlice.currentLevel, undefined);
+    assert.equal(
+      lastGame(exitRes).hubLevel.entities.some((e) => e.playerId === alice.email),
+      true,
+    );
   });
 
   it("moving into a default beach portal transports player to the linked dungeon", () => {

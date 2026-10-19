@@ -1,6 +1,6 @@
 import { Dirs, type Dir, type Point, parseColumnLetters } from "./lib/common.ts";
 
-export type ActionType = "move" | "wait" | "coord" | "restart" | "island";
+export type ActionType = "move" | "wait" | "coord" | "restart" | "exit";
 
 export interface Coordinate {
   col: string;
@@ -25,7 +25,7 @@ export class Action {
     if (
       this.type === "wait" ||
       this.type === "restart" ||
-      this.type === "island"
+      this.type === "exit"
     ) {
       return true;
     }
@@ -54,7 +54,7 @@ export class Action {
   }
 }
 
-// Parses a command like "up 2", "left", "a1", "wait", "restart", or "island". See spec/commands.md.
+// Parses a command like "up 2", "left", "a1", "wait", "restart", or "exit". See spec/commands.md.
 export function parseAction(command: string): Action {
   const args = command.trim().toLowerCase().split(/\s+/).filter(Boolean);
   if (args.length === 0) {
@@ -74,16 +74,8 @@ export function parseAction(command: string): Action {
     return new Action("restart");
   }
 
-  if (
-    words.includes("island") ||
-    words.includes("beach") ||
-    words.includes("hub") ||
-    (words.length === 1 && (words[0] === "back" || words[0] === "return")) ||
-    (words.length === 2 &&
-      words[0] === "go" &&
-      (words[1] === "back" || words[1] === "home"))
-  ) {
-    return new Action("island");
+  if (words.includes("exit")) {
+    return new Action("exit");
   }
 
   // Coordinate command: "a1", "l19", "m10", or "m 10"

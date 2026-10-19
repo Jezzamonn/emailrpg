@@ -267,10 +267,10 @@ function renderUI() {
     replyInput.placeholder = "Describe your look (e.g. 'ponytail, blonde hair, light skin, blue clothes')...";
     replySubmitBtn.textContent = "Send Customization";
   } else if (game.players[activeEmail]?.state === "dead") {
-    replyInput.placeholder = "You died! Enter 'restart' or 'island'...";
+    replyInput.placeholder = "You died! Enter 'restart' or 'exit'...";
     replySubmitBtn.textContent = "Send Choice";
   } else {
-    replyInput.placeholder = "Enter command (e.g. up, down 2, a1, m10, wait)...";
+    replyInput.placeholder = "Enter command (e.g. up, down 2, a1, m10, wait, restart, exit)...";
     replySubmitBtn.textContent = "Send Command";
   }
 

@@ -31,16 +31,26 @@ m10
 The letter indicates the column (starting from 'a' at the left) and the number indicates the row (starting from '1' at the bottom).
 If the player is unable to move to a location because there are enemies (movement is limited to 2 squares in cardinal directions when enemies are present), the command will not work.
 
+### Level commands:
+
+At any time while in a level, players can use:
+
+restart
+exit
+
+`restart` restarts the current level from the beginning, and `exit` returns the player to the main beach hub.
+
 ### When a player dies:
 
 When a player is killed in a level, they are shown the level where they died with a message saying they died. They must choose one of two options before continuing:
 
 restart
-island
+exit
 
-`restart` restarts the level they just died in, and `island` returns them to the main beach hub.
+`restart` restarts the level they just died in, and `exit` returns them to the main beach hub.
 
 ### When a player beats a level:
 
 When all enemies in a level are killed, the player is shown the level they just beat with information about their reward, and the level is recorded in their list of beaten levels. Replying with anything returns the player to the main beach hub.
+
 
