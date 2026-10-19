@@ -7,6 +7,7 @@ export type EnemyType = "ortho" | "diag" | "knight" | "slow";
 export interface DungeonEnemyConfig {
   type: EnemyType;
   p: Point;
+  cooldown?: number;
 }
 
 export interface DungeonDefinition {
@@ -18,54 +19,102 @@ export interface DungeonDefinition {
   enemies: DungeonEnemyConfig[];
 }
 
+function parseLevel(level: string): {
+  width: number;
+  height: number;
+  playerStart: Point;
+  enemies: DungeonEnemyConfig[];
+} {
+  // Parse 2D representation of level
+  const rows = level
+    .trim()
+    .split("\n")
+    .map((r) => Array.from(r.trim()));
+  const height = rows.length;
+  const width = rows[0].length;
+  let playerStart: Point = { x: 0, y: 0 };
+  const enemies: DungeonEnemyConfig[] = [];
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const cell = rows[y][x];
+      switch (cell) {
+        case "🤴":
+          playerStart = { x, y };
+          break;
+        case "🐀":
+          enemies.push({ type: "ortho", p: { x, y } });
+          break;
+        case "🦇":
+          enemies.push({ type: "diag", p: { x, y } });
+          break;
+        case "🐴":
+          enemies.push({ type: "knight", p: { x, y } });
+          break;
+        case "🐌":
+          enemies.push({ type: "slow", p: { x, y }, cooldown: 0 });
+          break;
+        case "💤":
+          enemies.push({ type: "slow", p: { x, y }, cooldown: 1 });
+          break;
+      }
+    }
+  }
+
+  return { width, height, playerStart, enemies };
+}
+
 export const PREGENERATED_DUNGEONS: DungeonDefinition[] = [
   {
     id: 1,
     name: "Rat Cellar",
-    width: 7,
-    height: 7,
-    playerStart: { x: 3, y: 5 },
-    enemies: [
-      { type: "ortho", p: { x: 2, y: 1 } },
-      { type: "ortho", p: { x: 4, y: 1 } },
-    ],
+    ...parseLevel(`
+⬛⬛⬛⬛
+🦇⬛🐀🦇
+⬛⬛⬛⬛
+⬛🤴⬛⬛
+    `),
   },
   {
     id: 2,
     name: "Bat Belfry",
-    width: 7,
-    height: 7,
-    playerStart: { x: 3, y: 5 },
-    enemies: [
-      { type: "diag", p: { x: 1, y: 1 } },
-      { type: "diag", p: { x: 5, y: 1 } },
-      { type: "slow", p: { x: 3, y: 2 } },
-    ],
+    ...parseLevel(`
+⬛⬛⬛⬛⬛⬛⬛
+⬛🦇⬛⬛⬛🦇⬛
+⬛⬛⬛🐌⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛🤴⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛
+    `),
   },
   {
     id: 3,
     name: "Wolf Warrens",
-    width: 8,
-    height: 8,
-    playerStart: { x: 3, y: 6 },
-    enemies: [
-      { type: "knight", p: { x: 2, y: 2 } },
-      { type: "knight", p: { x: 5, y: 2 } },
-      { type: "ortho", p: { x: 3, y: 1 } },
-    ],
+    ...parseLevel(`
+⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛🐀⬛⬛⬛⬛
+⬛⬛🐴⬛⬛🐴⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛🤴⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛
+    `),
   },
   {
     id: 4,
     name: "The Gauntlet",
-    width: 8,
-    height: 8,
-    playerStart: { x: 3, y: 6 },
-    enemies: [
-      { type: "knight", p: { x: 1, y: 1 } },
-      { type: "diag", p: { x: 6, y: 1 } },
-      { type: "ortho", p: { x: 1, y: 3 } },
-      { type: "slow", p: { x: 6, y: 3 } },
-    ],
+    ...parseLevel(`
+⬛⬛⬛⬛⬛⬛⬛⬛
+⬛🐴⬛⬛⬛⬛🦇⬛
+⬛⬛⬛⬛⬛⬛⬛⬛
+⬛🐀⬛⬛⬛⬛🐌⬛
+⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬛⬛🤴⬛⬛⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛
+    `),
   },
 ];
 
@@ -114,7 +163,7 @@ export function createPregeneratedDungeon(
   const entities: EntityState[] = def.enemies.map((enemyConfig) => ({
     type: enemyConfig.type,
     p: { ...enemyConfig.p },
-    cooldown: enemyConfig.type === "slow" ? 0 : undefined,
+    cooldown: enemyConfig.cooldown,
   }));
 
   return {
