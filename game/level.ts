@@ -75,8 +75,8 @@ function renderBeachTiles(
           let sx = baseTileX + horizMatch * TILE_SIZE + qx * halfTile;
           let sy = vertMatch * TILE_SIZE + qy * halfTile;
           if (horizMatch && vertMatch && !diagMatch) {
-            sx = baseTileX;
-            sy = 2 * TILE_SIZE;
+            sx = baseTileX + qx * halfTile;
+            sy = 2 * TILE_SIZE + qy * halfTile;
           }
           surface.drawSprite(
             sheet,
