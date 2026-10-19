@@ -70,9 +70,14 @@ function renderBeachTiles(
           const ny = y + (qy === 0 ? -1 : 1);
           const horizMatch = getBeachTileAt(tiles, nx, y) >= tile ? 1 : 0;
           const vertMatch = getBeachTileAt(tiles, x, ny) >= tile ? 1 : 0;
+          const diagMatch = getBeachTileAt(tiles, nx, ny) >= tile ? 1 : 0;
 
-          const sx = baseTileX + horizMatch * TILE_SIZE + qx * halfTile;
-          const sy = vertMatch * TILE_SIZE + qy * halfTile;
+          let sx = baseTileX + horizMatch * TILE_SIZE + qx * halfTile;
+          let sy = vertMatch * TILE_SIZE + qy * halfTile;
+          if (horizMatch && vertMatch && !diagMatch) {
+            sx = baseTileX;
+            sy = 2 * TILE_SIZE;
+          }
           surface.drawSprite(
             sheet,
             sx,
