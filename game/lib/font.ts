@@ -1,6 +1,6 @@
 import { type SpriteSheet, Surface, Colors } from "./surface.ts";
 import { decodePng } from "./png.ts";
-import { BANTER_PNG_BASE64 } from "./banter-data.ts";
+import banterPng from "../../assets/banter.png";
 import banterJsonData from "../../assets/banter.json" with { type: "json" };
 
 export interface Glyph {
@@ -206,60 +206,13 @@ export class Font {
 
 let cachedFont: Font | null = null;
 
-function base64ToBytes(b64: string): Uint8Array {
-  if (typeof atob === "function") {
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) {
-      bytes[i] = bin.charCodeAt(i);
-    }
-    return bytes;
-  }
-  const buf = (globalThis as any).Buffer?.from(b64, "base64");
-  if (buf) return new Uint8Array(buf);
-  throw new Error("Unable to decode base64");
-}
-
-function loadBanterPngBytes(): Uint8Array {
-  // If running in Node.js, read from assets/banter.png on disk
-  try {
-    const fs = (globalThis as any).process?.getBuiltinModule?.("node:fs");
-    if (fs?.readFileSync) {
-      const filePath = new URL("../../assets/banter.png", import.meta.url);
-      return new Uint8Array(fs.readFileSync(filePath));
-    }
-  } catch {
-    // Ignore and proceed to fallback
-  }
-
-  return base64ToBytes(BANTER_PNG_BASE64);
-}
-
-function loadBanterJson(): FontData {
-  // Try reading fresh from disk in Node.js, otherwise use imported JSON
-  try {
-    const fs = (globalThis as any).process?.getBuiltinModule?.("node:fs");
-    if (fs?.readFileSync) {
-      const filePath = new URL("../../assets/banter.json", import.meta.url);
-      return JSON.parse(fs.readFileSync(filePath, "utf-8")) as FontData;
-    }
-  } catch {
-    // Ignore and use imported banterJsonData
-  }
-
-  return banterJsonData as FontData;
-}
-
 /**
  * Returns the cached Banter font instance loaded from assets/banter.png and assets/banter.json.
  */
 export function getBanterFont(): Font {
-  if (cachedFont) return cachedFont;
-
-  const pngBytes = loadBanterPngBytes();
-  const fontData = loadBanterJson();
-  const sheet = decodePng(pngBytes);
-
-  cachedFont = new Font(sheet, fontData);
+  if (!cachedFont) {
+    const sheet = decodePng(new Uint8Array(banterPng));
+    cachedFont = new Font(sheet, banterJsonData as FontData);
+  }
   return cachedFont;
 }
